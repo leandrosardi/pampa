@@ -118,9 +118,9 @@ module BlackStack
           "uid=#{lnuser['id']}&" +
           "sender_name=#{URI.escape(chat[:sender_name])}&" +
           "body=#{URI.escape(chat[:body])}&" 
-#puts ""
-#puts "url:#{url}:."
-#puts ""
+puts ""
+puts "url:#{url}:."
+puts ""
         # HELP: File.open('./output3.txt', 'a') { |file| file.write(url + "\r\n") }
   
         # push the chat
