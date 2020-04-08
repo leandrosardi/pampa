@@ -199,7 +199,7 @@ module BlackStack
     # se notifica al dispatcher de la division
     def notify()
       if (self.ws_url==nil || self.ws_port==nil)
-        raise "Cannot notify. Worker has not parameters."
+        raise "Cannot notify. Worker not exists, or it has not parameters, or it is belong another client. Check your api_key, and check the name of the worker."
       end
               
       # me notifico a la division. obtengo trabajo
