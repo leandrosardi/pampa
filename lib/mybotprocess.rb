@@ -2,7 +2,7 @@ module BlackStack
 
   # clase de base para todos los bots ejecuten acciones con una cuenta de LinkedIn, Facebook, Twitter, etc.
   class MyBotProcess < BlackStack::MyRemoteProcess
-    attr_accessor :username, :login_verifications, :run_once   
+    attr_accessor :username, :login_verifications, :run_once, :cookies_robot
   
     # constructor
     def initialize(
@@ -18,7 +18,7 @@ module BlackStack
       self.worker_name = "#{the_worker_name}" 
       self.division_name = the_division_name
       self.minimum_enlapsed_seconds = the_minimum_enlapsed_seconds
-      
+
       # algunas clases como CreateLnUserProcess o RepairLnUserProcess, trabajan unicamente con el username especificado en este atributo, llamando al access point get_lnuser_by_username.
       # si este atributo es nil, entonces la clase pide un lnuser a la division, llamando al access point get_lnuser.
       self.username = nil
@@ -32,6 +32,9 @@ module BlackStack
       # si este proceso se corre de forma supevisada, se desa correr el procesamiento una unica vez.
       # cuando se activa este flag, generalmente se setea el atributo self.username tambien. 
       self.run_once = false
+      
+      # preguntar al servidor si el lnuser debe calentar el browser visitando sitios al azar para recolectar cookies
+      self.cookies_robot = true
     end
   
     # returns a hash with the parameters of a lnuser
