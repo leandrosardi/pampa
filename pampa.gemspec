@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pampa_workers'
-  s.version     = '1.1.14'
-  s.date        = '2020-04-28'
+  s.version     = '1.1.15'
+  s.date        = '2020-07-03'
   s.summary     = "THIS GEM IS STILL IN DEVELOPMENT STAGE. Ruby library for distributing computing, supporting dynamic reconfiguration, distribution of the computation jobs, error handling, job-retry and fault tolerance, fast (non-direct) communication to ensure real-time capabilities."
   s.description = "THIS GEM IS STILL IN DEVELOPMENT STAGE. Find documentation here: https://github.com/leandrosardi/pampa."
   s.authors     = ["Leandro Daniel Sardi"]
