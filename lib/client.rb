@@ -85,50 +85,59 @@ module BlackStack
   
     # llama a la api de postmark preguntando el reseller email configurado para este clietne fue ferificado
     def checkDomainForSSMVerified()
-      return_message = {}
+			return_message = {}  
       domain = self.domain_for_ssm
       email = self.from_email_for_ssm
       id = ''
       client = ''
-  
       if domain != nil && email != nil
         begin
-          client_postmark = Postmark::AccountApiClient.new(POSTMARK_API_TOKEN, secure: true)      
-          client_list = client_postmark.get_signatures()
-  
-          client_list.each do |sign|
-            if sign[:domain] == domain
-              if sign[:email_address] == email
-                id = sign[:id]
-                break
-              end
-            end
-          end
-  
-          if id.to_s.size > 0
-            client = client_postmark.get_sender(id)
+          # create postmark client
+					client_postmark = Postmark::AccountApiClient.new(POSTMARK_API_TOKEN, secure: true)      
+					
+          # get signature
+					# more info: https://github.com/wildbit/postmark-gem/wiki/Senders
+					#
+					# this first strategy is not scalable if we handle a large list of signatures.
+					#sign = client_postmark.signatures.select { |sign| sign[:domain]==domain }.first
+					# 
+					# this other approach is a bit more scalable, but anyway we need to call the API 
+					# with filering by the domain.
+					# 
+					pagesize = 30 # TODO: increase this value to 300 for optimization
+					i = 0
+					j = 1
+					sign = nil
+					while j>0 && sign.nil?
+						buff = client_postmark.get_signatures(offset: i, count: pagesize)
+						j = buff.size
+						i += pagesize
+						sign = buff.select { |s| s[:domain]==domain }.first
+					end # while
+					
+					# if signature has been found?
+          if sign.nil?
+						# sincronizo con la central
+						return_message[:status] = "Client Signature Not Found"
+						return_message[:value] = client[:id]
+						return return_message.to_json 
+					else
+            id = sign[:id]
+						client = client_postmark.get_sender(id)
             if !client[:confirmed]
               self.domain_for_ssm_verified = false
-              self.save
-  
+              self.save  
               return_message[:status] = "No Verified"
               return_message[:value] = client[:id]
-  
               return return_message.to_json 
             else
               self.domain_for_ssm_verified = true
-              self.save
-  
-              # sincronizo con la central
-              return_message = {}
-  
+              self.save  
               return_message[:status] = "success"
               return_message[:value] = client[:id]
-  
               return return_message.to_json 
             end
           end
-    
         rescue Postmark::ApiInputError => e
           return_message[:status] = e.to_s
           return return_message.to_json
