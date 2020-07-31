@@ -113,14 +113,14 @@ module BlackStack
         url = 
           "#{BlackStack::Pampa::api_protocol}://#{self.ws_url}:#{self.ws_port}/api1.3/pampa/scrape.inbox/notify_lnchat.json?" +
           "api_key=#{BlackStack::Pampa::api_key}&" +
-          "profile_code=#{URI.escape(conv[:profile_code])}&" +
-          "profile_name=#{URI.escape(conv[:profile_name])}&" +
-          "profile_headline=#{URI.escape(conv[:profile_headline])}&" +
-          "first=#{URI.escape(conv[:first])}&" +
+          "profile_code=#{CGI.escape(conv[:profile_code])}&" +
+          "profile_name=#{CGI.escape(conv[:profile_name])}&" +
+          "profile_headline=#{CGI.escape(conv[:profile_headline])}&" +
+          "first=#{CGI.escape(conv[:first])}&" +
           "position=#{chat[:position].to_s}&" +
           "uid=#{lnuser['id']}&" +
-          "sender_name=#{URI.escape(chat[:sender_name])}&" +
-          "body=#{URI.escape(chat[:body])}&" 
+          "sender_name=#{CGI.escape(chat[:sender_name])}&" +
+          "body=#{CGI.escape(chat[:body])}&" 
 puts ""
 puts "url:#{url}:."
 puts ""
