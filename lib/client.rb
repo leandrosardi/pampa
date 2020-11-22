@@ -181,7 +181,7 @@ module BlackStack
       if self.resellerSignatureEnabled?
         return self.from_email_for_ssm.to_s
       else
-        return BlackStack::Params.getValue("notifications.user.email_from")
+        return NOTIFICATIONS[:from_email]
       end
     end
   
@@ -191,7 +191,7 @@ module BlackStack
       if self.resellerSignatureEnabled?
         return self.from_email_for_ssm.to_s
       else
-        return BlackStack::Params.getValue("notifications.user.name_from")
+        return NOTIFICATIONS[:from_name]
       end
     end
   end # class Client
