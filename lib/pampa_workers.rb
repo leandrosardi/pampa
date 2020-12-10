@@ -32,6 +32,7 @@ module BlackStack
 
     # 
     @@division_name = nil
+    @@timeout = 7
 
     def self.division_name() 
       @@division_name
@@ -42,10 +43,19 @@ module BlackStack
       @@division_name = s
     end
 
+    def self.timeout() 
+      @@timeout
+    end
+
+    #
+    def self.set_timeout(n) 
+      @@timeout = n
+    end
+
     # Api-key of the client who will be the owner of a process.
     @@api_key = nil
     
-    def self.api_key() 
+    def self.api_key()
       @@api_key 
     end
     
@@ -212,7 +222,8 @@ module BlackStack
           :port => BlackStack::Pampa::db_port, # Required when using other that 1433 (default)
           :database => BlackStack::Pampa::db_name,
           :user => BlackStack::Pampa::db_user,
-          :password => BlackStack::Pampa::db_password
+          :password => BlackStack::Pampa::db_password,
+          :timeout => BlackStack::Pampa::timeout
           }      
       else
         url = "#{BlackStack::Pampa::api_url}/api1.2/division/get.json"
@@ -233,7 +244,8 @@ module BlackStack
             :port => parsed["db_port"], # only required if port is different than 1433
             :database => parsed["db_name"],
             :user => parsed["db_user"],
-            :password => parsed["db_password"]
+            :password => parsed["db_password"],
+            :timeout => BlackStack::Pampa::timeout
           }
         end
       end
