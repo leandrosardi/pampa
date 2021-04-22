@@ -98,12 +98,16 @@ module BlackStack
           # get signature
 					# more info: https://github.com/wildbit/postmark-gem/wiki/Senders
 					#
-					# this first strategy is not scalable if we handle a large list of signatures.
-					#sign = client_postmark.signatures.select { |sign| sign[:domain]==domain }.first
+					# TODO: this first strategy is not scalable if we handle a large list of signatures.
+					# sign = client_postmark.signatures.select { |sign| sign[:domain]==domain }.first
 					# 
 					# this other approach is a bit more scalable, but anyway we need to call the API 
 					# with filering by the domain.
 					# 
+          # 
+          # TODO: this code is a replication from the filter ?memeber/filter_update_reseller_signature
+          # Refer this issue for more information: https://github.com/leandrosardi/blackstack/issues/95
+          #
 					pagesize = 30 # TODO: increase this value to 300 for optimization
 					i = 0
 					j = 1
@@ -189,7 +193,7 @@ module BlackStack
     def resellerSignatureName
       # configuracion de cuenta reseller
       if self.resellerSignatureEnabled?
-        return self.from_email_for_ssm.to_s
+        return self.from_name_for_ssm.to_s
       else
         return NOTIFICATIONS[:from_name]
       end

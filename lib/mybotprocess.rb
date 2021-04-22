@@ -69,7 +69,7 @@ module BlackStack
       end
   
       return lnuser
-    end # getLnUser()
+    end # getLnUserByUsername()
   
     # returns a hash with the parameters of a lnuser
     # raises an exception if it could not get a lnuser, or if ocurrs any other problem
@@ -377,7 +377,7 @@ puts ""
       return ret
 =end
     end # isLnUserAvailable
-  
+
   end # class MyBotProcess
 
 end # module BlackStack
