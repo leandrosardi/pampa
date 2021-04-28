@@ -16,13 +16,19 @@ The **Pampa** framework may be widely used for:
 
 and any other tasks that requires a virtually infinite amount of CPU computing and memory resources.
 
+# Installation
+
+```cmd
+gem install pampa_workers
+```
+
 # 1. Getting Started
 
 This is a short guide to have running a **Pampa worker** who can easily switch between different **child processes**.
 
 You can easily setup, manage and monitor your **Pampa Workers** through our ExpandedVenture's **Threads Service**.
 
-**Additional Note:** [**ExpandedVenture**](https://expandedventure.com) is a starting-up holding of SaaS products, like [ConnectionSphere](https://ConnectionSphere.com). Most of its other services are either prototypes or beta.
+**Additional Note:** As of Apr-21, [**ExpandedVenture**](https://expandedventure.com) is a starting-up holding of SaaS products, like [ConnectionSphere](https://ConnectionSphere.com). Most of its other services are either prototypes or beta.
 
 ## 1.1. Getting Your API-KEY
 
