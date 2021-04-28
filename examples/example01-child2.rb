@@ -1,6 +1,8 @@
+# this process is launched from a Pampa worker.
+
 require_relative '../lib/pampa_workers.rb'
 
-# 
+# parse the command line parameters
 parser = BlackStack::SimpleCommandLineParser.new(
   :description => 'This command will launch a Pampa worker.', 
   :configuration => [{
@@ -11,29 +13,24 @@ parser = BlackStack::SimpleCommandLineParser.new(
   }, {
     :name=>'division', 
     :mandatory=>true, 
-    :description=>'Name of the worker. Note that the full-name of the worker will be composed with the host-name and the mac-address of this host too.', 
+    :description=>'Name of the division where this worker is assigned. For more information about divisions, please refer to https://github.com/leandrosardi/tempora#1-architecuture.', 
     :type=>BlackStack::SimpleCommandLineParser::STRING,
   }]
 )
 
-# 
+# setup connection to the Pampa server
 BlackStack::Pampa::set_api_url({
-  :api_key => 'E20CBAE0-A4D4-4161-8812-6D9FE67A2E47',
+  :api_key => '< write your API-KEY here >', # write your API-KEY here
   :api_protocol => 'https',
-  :api_domain => '127.0.0.1',
+  :api_domain => 'connectionsphere.com', # write 127.0.0.1 if you are running Tempora in your own dev environment
   :api_port => 443,
 })
-
-#
-#BlackStack::Pampa::set_division_name('local')
-#DB = BlackStack::Pampa::db_connection
-#BlackStack::Pampa::require_db_classes
 
 # child process definition
 class MyExampleProcess < BlackStack::MyRemoteProcess  
   def process(argv)
     begin
-      puts "Hello World!"
+      puts "Hello ConnectionSphere.com!"
     rescue => e
       puts "ERROR: #{e.to_s}"
     end
