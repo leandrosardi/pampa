@@ -307,4 +307,8 @@ Next features to be added to **Pampa**.
 
 4. Cloud Hosting of Workers.
 
+5. Keywords and RegEx Patterns Detection on Logs, with Alert Notifications to the User
 
+6. Alert Notifications to the User when a Worker is Not Being Announced
+	- track the average delay between annoucnements, in order to suggest the optimal value.
+  - show time charts of the delays between announcements.
