@@ -35,7 +35,7 @@ You can easily setup, manage and monitor your **Pampa Workers** through our Expa
 1. Signup to ConnectionSphere here: 
 [https://ConnectionSphere.com/signup](https://ConnectionSphere.com/signup)
 
-*(picture pending)*
+![image](https://i.ibb.co/jg6JkVK/2.png)
 
 2. Generate your API-KEY as is explained in this tutorial:
 [https://help.expandedventure.com/developers/getting-your-api-key](https://help.expandedventure.com/developers/getting-your-api-key)
@@ -171,6 +171,10 @@ PROCESS.run()
 6. Find your worker in the list, and setup `example01-child1.rb` as its assigned process.
 
 *(It is pending to allow edition of assigned process. Add the sceenshot then.)*
+
+![image](https://i.ibb.co/QYYsXHf/3.png)
+
+
 
 The same worker process that you kept running in the previous section, will detect the new configuraton and run `example01-child1.rb`, who will print `'Hello World!'` in the console.
 
