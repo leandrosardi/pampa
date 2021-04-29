@@ -291,7 +291,11 @@ Your [**dispatcher**](https://github.com/leandrosardi/pampa_dispatcher) should b
 
 Refer to [Pampa Dispatcher](https://github.com/leandrosardi/pampa_dispatcher) to know how to distribute tasks along many workers.
 
-# 5. Further Work
+# 5. Announcing the Worker
+
+*(pending)*
+
+# 6. Further Work
 
 Next features to be added to **Pampa**.
 
