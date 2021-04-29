@@ -291,5 +291,16 @@ Your [**dispatcher**](https://github.com/leandrosardi/pampa_dispatcher) should b
 
 Refer to [Pampa Dispatcher](https://github.com/leandrosardi/pampa_dispatcher) to know how to distribute tasks along many workers.
 
+# 5. Further Work
+
+Next features to be added to **Pampa**.
+
+1. Worker Log Monitoring.
+
+2. Worker Screen Streaming.
+
+3. Cloud Dispatcher Configuration & Execution.
+
+4. Cloud Hosting of Workers.
 
 
