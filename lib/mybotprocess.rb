@@ -120,7 +120,9 @@ module BlackStack
           "position=#{chat[:position].to_s}&" +
           "uid=#{lnuser['id']}&" +
           "sender_name=#{CGI.escape(chat[:sender_name])}&" +
-          "body=#{CGI.escape(chat[:body])}&" 
+          "body=#{CGI.escape(chat[:body])}&" +
+          "gct=#{CGI.escape(conv[:gct])}&"
+
 puts ""
 puts "url:#{url}:."
 puts ""
