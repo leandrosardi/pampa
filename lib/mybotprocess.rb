@@ -70,7 +70,42 @@ module BlackStack
   
       return lnuser
     end # getLnUserByUsername()
-  
+
+    # returns an array of users/clients of lnuser
+    # raises an exception if it could not get a users, or if ocurrs any other problem
+    def getGroupChatsDeliveredByLnUser(username)
+      nTries = 0
+      parsed = nil
+      gchats = [] # array
+      bSuccess = false
+      sError = ""
+      while nTries < 5 && bSuccess == false
+        begin
+          nTries = nTries + 1
+          url = "#{BlackStack::Pampa::api_protocol}://#{self.ws_url}:#{self.ws_port}/api1.3/pampa/scrape.inbox/get_group_chats_delivered_by_lnuser.json"
+          res = BlackStack::Netting::call_post(url, {'api_key' => BlackStack::Pampa::api_key, 'agent_email' => username.encode("UTF-8")})
+          parsed = JSON.parse(res.body)
+          if parsed['status'] == 'success'
+            gchats = parsed
+            bSuccess = true
+          else
+            sError = parsed['status']
+          end
+        rescue Errno::ECONNREFUSED => e
+          sError = "Errno::ECONNREFUSED:" + e.to_console
+        rescue => e2
+          sError = "Exception: " + e2.to_console
+        end
+      end # while
+
+      if bSuccess == false
+        raise BlackStack::Netting::ApiCallException.new(sError)
+      end
+
+      gchats
+    end # getGroupChatsDeliveredByLnUser()
+
+
     # returns a hash with the parameters of a lnuser
     # raises an exception if it could not get a lnuser, or if ocurrs any other problem
     def getLnUser(workflow_name='incrawl.lnsearchvariation')
