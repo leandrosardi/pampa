@@ -46,7 +46,9 @@ Create a new ruby script `example01.rb` with this little piece of code:
 
 1. Replace `'<write your API-KEY here>'` by your API-KEY.
 
-2. Replace `'connectionsphere.com'` by `'127.0.0.1'` if you are running in your dev environment.
+2. Replace `'connectionsphere.com'` the URL that you got when you generated your API KEY.
+
+![image](https://i.ibb.co/Srs5zLH/1.png)
 
 ```ruby
 require 'pampa_workers'
@@ -170,10 +172,7 @@ PROCESS.run()
 
 6. Find your worker in the list, and setup `example01-child1.rb` as its assigned process.
 
-*(It is pending to allow edition of assigned process. Add the sceenshot then.)*
-
 ![image](https://i.ibb.co/QYYsXHf/3.png)
-
 
 
 The same worker process that you kept running in the previous section, will detect the new configuraton and run `example01-child1.rb`, who will print `'Hello World!'` in the console.
@@ -210,7 +209,7 @@ In the same way you created `example01-child1.rb`, you will create a new file `e
 
 Your worker is capable to switch between these 2 **child processes**, when you change its configuraton in the **Threads Service**'s dashboard.
 
-If you update your worker in the **Threads Service**'s dashboard, assigning `example01-child2.rb`, you will see an output like the one shown b
+If you update your worker in the **Threads Service**'s dashboard, assigning `example01-child2.rb`, you will see an output like the one shown below.
 
 ```cmd
 ...
