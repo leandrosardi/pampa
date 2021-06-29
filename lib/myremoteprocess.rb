@@ -7,6 +7,7 @@ module BlackStack
     attr_accessor :worker
       
     # update worker configuration in the division
+    # TODO: deprecated
     def updateWorker()      
       # creo un remote worker que manejare en este proceso remote
       self.worker = BlackStack::RemoteWorker.new
@@ -58,9 +59,9 @@ module BlackStack
         logger.done
   
         # actualizo los datos de este worker (parent process)
-        logger.logs "Update worker (1-remote)... "
-        self.updateWorker
-        logger.done
+#        logger.logs "Update worker (1-remote)... "
+#        self.updateWorker
+#        logger.done
 
         # actualizo los datos de este worker (parent process)
         logger.logs "Switch logger id_client (log folder may change)... "
@@ -113,9 +114,9 @@ module BlackStack
           logger.done
   
           # actualizo los datos de este worker (parent process)
-          logger.logs "Update worker (2)... "
-          self.updateWorker
-          logger.done
+#          logger.logs "Update worker (2)... "
+#          self.updateWorker
+#          logger.done
   
           # sleep
           logger.logs "Sleep... "

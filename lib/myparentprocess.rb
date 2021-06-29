@@ -61,31 +61,28 @@ module BlackStack
                 self.ws_url             = parsed['ws_url']
                 self.ws_port            = parsed['ws_port']
                 self.logger.logf "done (#{self.division_name})"
-  
+
                 # 
-                self.logger.logs "Notify division... "
-                if self.division_name.to_s.size == 0
-                  self.logger.logf "no division assigned"                                
-                else
-                  self.notify # notifico a la division
-                  self.logger.done
-  
-                  # 
-                  self.logger.logs "Spawn child process... "    
-                  # lanzo el proceso
-                  if self.assigned_process.to_s.size > 0
-                    command = "ruby #{self.assigned_process} name=#{self.worker_name} division=#{self.division_name}"
-                    pid = Process.spawn(command)
-                    logger.logf "done (pid=#{pid.to_s})" 
-                    
-                    logger.log("Wait to child process to finish.")
-                    Process.wait(pid)
+                self.logger.logs "Spawn child process... "    
+                # lanzo el proceso
+                if self.assigned_process.to_s.size > 0
+                  command = "ruby #{self.assigned_process} name=#{self.worker_name} division=#{self.division_name}"
+                  pid = Process.spawn(command)
+                  logger.logf "done (pid=#{pid.to_s})" 
+                   
+                  logger.log("Wait to child process to finish.")
+                  Process.wait(pid)
+                else #if self.assigned_process.to_s.size == 0
+                  self.logger.logf "no process assigned"
+                  self.logger.logs "Notify division... "
+                  if self.division_name.to_s.size == 0
+                    self.logger.logf "no division assigned"                                
                   else
-                    if self.assigned_process.to_s.size == 0
-                      self.logger.logf "no process assigned"                                
-                    end
-                  end # if self.assigned_process.to_s.size > 0
-                end # if self.division_name.to_s.size == 0
+                    self.notify # notifico a la division
+                    self.logger.done
+                  end # if self.division_name.to_s.size == 0
+                end # if self.assigned_process.to_s.size > 0
+
               end # if (parsed['status'] != "success") <-- #{BlackStack::Pampa::api_url}/api1.3/pampa/get.json
             end # if (parsed['status'] != "success") <-- #{BlackStack::Pampa::api_url}/api1.3/pampa/hello.json
   
