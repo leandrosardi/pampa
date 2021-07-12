@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 # this process is launched from a Pampa worker.
 
 require_relative '../lib/pampa_workers.rb'
@@ -20,7 +22,7 @@ parser = BlackStack::SimpleCommandLineParser.new(
 
 # setup connection to the Pampa server
 BlackStack::Pampa::set_api_url({
-  :api_key => '< write your API-KEY here >', # write your API-KEY here
+  :api_key => '290582D4-D00C-4D37-82AF-23043B242647', # write your API-KEY here
   :api_protocol => 'https',
   :api_domain => 'connectionsphere.com', # write 127.0.0.1 if you are running Tempora in your own dev environment
   :api_port => 443,
