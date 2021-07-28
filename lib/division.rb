@@ -11,6 +11,7 @@ module BlackStack
         :db_user=>self.db_user, 
         :db_password=>self.db_password, 
         :db_name=>self.db_name, 
+        :app_url=>self.app_url,
         :home=>true, 
         :available=>true
       ).first
