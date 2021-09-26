@@ -20,7 +20,7 @@ parser = BlackStack::SimpleCommandLineParser.new(
 
 # setup connection to the Pampa server
 BlackStack::Pampa::set_api_url({
-  :api_key => '< write your API-KEY here >', # write your API-KEY here
+  :api_key => '56D608FC-645D-4A7B-9C38-94C853CADD5A', # write your API-KEY here
   :api_protocol => 'https',
   :api_domain => 'connectionsphere.com', # write 127.0.0.1 if you are running Tempora in your own dev environment
   :api_port => 443,

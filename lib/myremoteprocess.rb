@@ -59,9 +59,9 @@ module BlackStack
         logger.done
   
         # actualizo los datos de este worker (parent process)
-#        logger.logs "Update worker (1-remote)... "
-#        self.updateWorker
-#        logger.done
+        logger.logs "Update worker (1-remote)... "
+        self.updateWorker
+        logger.done
 
         # actualizo los datos de este worker (parent process)
         logger.logs "Switch logger id_client (log folder may change)... "
@@ -114,9 +114,9 @@ module BlackStack
           logger.done
   
           # actualizo los datos de este worker (parent process)
-#          logger.logs "Update worker (2)... "
-#          self.updateWorker
-#          logger.done
+          logger.logs "Update worker (2)... "
+          self.updateWorker
+          logger.done
   
           # sleep
           logger.logs "Sleep... "
