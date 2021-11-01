@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pampa_workers'
-  s.version     = '1.1.23'
-  s.date        = '2021-09-26'
+  s.version     = '1.1.24'
+  s.date        = '2021-11-01'
   s.summary     = "THIS GEM IS STILL IN DEVELOPMENT STAGE. Ruby library for distributing computing, supporting dynamic reconfiguration, distribution of the computation jobs, error handling, job-retry and fault tolerance, fast (non-direct) communication to ensure real-time capabilities."
   s.description = "THIS GEM IS STILL IN DEVELOPMENT STAGE. Find documentation here: https://github.com/leandrosardi/pampa."
   s.authors     = ["Leandro Daniel Sardi"]
@@ -37,5 +37,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'json', '~> 1.8.1', '>= 1.8.1'
   s.add_runtime_dependency 'tiny_tds', '~> 1.0.5', '>= 1.0.5'
   s.add_runtime_dependency 'sequel', '~> 4.28.0', '>= 4.28.0'
-  s.add_runtime_dependency 'simple_host_monitoring', '~> 1.1.1', '>= 1.1.1'
+  s.add_runtime_dependency 'simple_host_monitoring', '~> 1.1.8', '>= 1.1.8'
 end
