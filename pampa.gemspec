@@ -22,7 +22,6 @@ Gem::Specification.new do |s|
     'lib/mychildprocess.rb',
     'lib/mylocalprocess.rb',
     'lib/mycrawlprocess.rb',
-    'lib/mybotprocess.rb',
     'lib/client.rb',
     'lib/timezone.rb',
     'lib/user.rb',
