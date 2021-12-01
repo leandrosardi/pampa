@@ -38,9 +38,7 @@ module BlackStack
     end
   
     # 
-    def run()
-        super
-  
+    def run()  
         # creo el objeto logger
         self.logger = RemoteLogger.new(
           "#{self.fullWorkerName}.log",
