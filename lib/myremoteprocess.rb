@@ -66,9 +66,9 @@ module BlackStack
         logger.done
 
         # actualizo los datos de este worker (parent process)
-        logger.logs "Switch logger id_client (log folder may change)... "
-        self.logger.id_client = self.id_client
-        logger.done
+#        logger.logs "Switch logger id_client (log folder may change)... "
+#        self.logger.id_client = self.id_client
+#        logger.done
   
         while (self.canRun?)
   
