@@ -7,6 +7,7 @@ module BlackStack
         super
         
         # creo el objeto logger
+=begin
         self.logger = BlackStack::RemoteLogger.new(
           "#{self.fullWorkerName}.log",
           BlackStack::Pampa::api_protocol, 
@@ -15,7 +16,11 @@ module BlackStack
           BlackStack::Pampa::api_key,
           self.id_client # ID of the client that has this thread assigned
         )
-  
+=end
+        self.logger = LocalLogger.new(
+          "#{self.fullWorkerName}.log"
+        )
+
         # 
         pid = nil
         while (true)

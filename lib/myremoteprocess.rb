@@ -39,6 +39,7 @@ module BlackStack
   
     # 
     def run()  
+=begin
         # creo el objeto logger
         self.logger = RemoteLogger.new(
           "#{self.fullWorkerName}.log",
@@ -48,9 +49,12 @@ module BlackStack
           BlackStack::Pampa::api_key,
           self.id_client # ID of the client that has this thread assigned
         )
-  
+=end
+        self.logger = LocalLogger.new(
+          "#{self.fullWorkerName}.log"
+        )
+
         logger.log "Remote process is alive!"
-  
         # actualiza parametros de la central
         logger.logs "Update from central (1-remote)... "
         self.get
