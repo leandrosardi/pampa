@@ -3,6 +3,7 @@
 
 # ignore log files
 *.log
+*.log.data
 
 # ignore .project file created by IDE
 .project
