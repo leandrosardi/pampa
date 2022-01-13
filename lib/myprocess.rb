@@ -90,6 +90,11 @@ module BlackStack
     def hello()
       # me notifico a la central. obtengo asignacion si ya la tenia
       url = "#{BlackStack::Pampa::api_url}/api1.3/pampa/hello.json"
+puts
+puts
+puts "url: #{url}"
+puts
+puts
       res = BlackStack::Netting::call_post(url, {
         'api_key' => BlackStack::Pampa::api_key, 
         'name' => self.fullWorkerName }.merge( BlackStack::RemoteHost.new.poll )
@@ -104,6 +109,11 @@ module BlackStack
     def set(new_assigned_process, new_id_client)
       if (self.ws_url.to_s.size > 0 && self.ws_port.to_s.size > 0)
         url = "#{BlackStack::Pampa::api_protocol}://#{self.ws_url.to_s}:#{self.ws_port.to_s}/api1.3/pampa/notify.json"
+puts
+puts
+puts "url: #{url}"
+puts
+puts
         res = BlackStack::Netting::call_post(url, {
           'api_key' => BlackStack::Pampa::api_key, 
           'name' => self.fullWorkerName,
@@ -117,6 +127,11 @@ module BlackStack
     def get()
       # me notifico a la central. obtengo asignacion que tenga
       url = "#{BlackStack::Pampa::api_url}/api1.3/pampa/get.json"
+puts
+puts
+puts "url: #{url}"
+puts
+puts
       res = BlackStack::Netting::call_post(url, {
         'api_key' => BlackStack::Pampa::api_key, 
         'name' => self.fullWorkerName }.merge( BlackStack::RemoteHost.new.poll )
@@ -204,6 +219,11 @@ module BlackStack
               
       # me notifico a la division. obtengo trabajo
       url = "#{BlackStack::Pampa::api_protocol}://#{self.ws_url}:#{self.ws_port}/api1.3/pampa/notify.json"
+puts
+puts
+puts "url: #{url}"
+puts
+puts      
       res = BlackStack::Netting::call_post(url, 
         {
         'api_key' => BlackStack::Pampa::api_key, 

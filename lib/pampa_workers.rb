@@ -154,16 +154,6 @@ module BlackStack
       @@farm_external_ip_addresses = a
     end
 
-    # 
-    def self.get_guid
-      res = BlackStack::Netting::call_post(
-        "#{self.api_url}/api1.4/get_guid.json",
-        {'api_key' => @@api_key}
-      )
-      parsed = JSON.parse(res.body)
-      parsed['value']        
-    end
-
     # Central database connection parameters
     @@db_url = nil
     @@db_port = nil
