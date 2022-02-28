@@ -36,11 +36,11 @@ module BlackStack
             
             # consulto a la central por la division asignada
             url = "#{BlackStack::Pampa::api_url}/api1.3/pampa/hello.json"
-puts
-puts
-puts "url: #{url}"
-puts
-puts
+#puts
+#puts
+#puts "url: #{url}"
+#puts
+#puts
             logger.logs("Hello to the central... ")
             res = BlackStack::Netting::call_post(url, {
               'api_key' => BlackStack::Pampa::api_key, 

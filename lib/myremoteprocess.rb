@@ -14,11 +14,11 @@ module BlackStack
       # me notifico a la central. obtengo asignacion si ya la tenia
       # y vuelco la configuracion al remote worker
       url = "#{BlackStack::Pampa::api_url}/api1.3/pampa/get.json"
-puts
-puts
-puts "url: #{url}"
-puts
-puts      
+#puts
+#puts
+#puts "url: #{url}"
+#puts
+#puts      
       res = BlackStack::Netting::call_post(url, {
         'api_key' => BlackStack::Pampa::api_key, 
         'name' => self.fullWorkerName }.merge( BlackStack::RemoteHost.new.poll )
