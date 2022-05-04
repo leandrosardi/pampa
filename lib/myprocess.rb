@@ -32,7 +32,7 @@ module BlackStack
     # uid: id de un registro en la tabla lnuser.
     # description: backtrace de la excepcion.
     #
-    def notifyError(uid, description, oid=nil, screenshot_file=nil)
+    def notifyError(uid, description, oid=nil, screenshot_file=nil, assigned_process=nil)
       # subo el error
       nTries = 0
       bSuccess = false
@@ -47,7 +47,7 @@ module BlackStack
             'id_lnuser' => uid, 
             'id_object' => oid, 
             'worker_name' => PROCESS.fullWorkerName, 
-            'process' => PROCESS.worker.assigned_process,
+            'process' => !assigned_process.nil? ? assigned_process : PROCESS.worker.assigned_process,
             'description' => description,
             'screenshot' => screenshot_file,
           )
