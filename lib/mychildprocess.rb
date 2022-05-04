@@ -4,6 +4,6 @@ module BlackStack
   # en cada iteracion saluda a la central (hello), obtiene parametros (get)
   class MyChildProcess < BlackStack::MyProcess
 
-  end # MyChildProcess
+  end # class MyChildProcess
 
 end # module BlackStack

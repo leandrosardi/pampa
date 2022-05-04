@@ -27,6 +27,48 @@ module BlackStack
       self.password = the_password
     end
   
+    # Sube un registro a la tabla boterrorlog, con el id del worker, el proceso asignado, on id de objeto relacionado (opcional) y un screenshot (opcional). 
+    #
+    # uid: id de un registro en la tabla lnuser.
+    # description: backtrace de la excepcion.
+    #
+    def notifyError(uid, description, oid=nil, screenshot_file=nil)
+      # subo el error
+      nTries = 0
+      bSuccess = false
+      parsed = nil
+      sError = ""
+      while (nTries < 5 && bSuccess == false)
+        begin
+          nTries = nTries + 1
+          url = "#{BlackStack::Pampa::api_protocol}://#{self.ws_url}:#{self.ws_port}/api1.3/bots/boterror.json"
+          res = BlackStack::Netting::call_post(url, # TODO: migrar a RestClient para poder hacer file upload
+            'api_key' => BlackStack::Pampa::api_key, 
+            'id_lnuser' => uid, 
+            'id_object' => oid, 
+            'worker_name' => PROCESS.fullWorkerName, 
+            'process' => PROCESS.worker.assigned_process,
+            'description' => description,
+            'screenshot' => screenshot_file,
+          )
+          parsed = JSON.parse(res.body)
+          if (parsed['status']=='success')
+            bSuccess = true
+          else
+            sError = parsed['status']
+          end
+        rescue Errno::ECONNREFUSED => e
+          sError = "Errno::ECONNREFUSED:" + e.to_console
+        rescue => e2
+          sError = "Exception:" + e2.to_console
+        end
+      end # while
+  
+      if (bSuccess==false)
+        raise "#{sError}"
+      end
+    end
+
     # retrieves the id of the current process
     def pid()
       Process.pid.to_s
