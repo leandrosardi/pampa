@@ -18,7 +18,7 @@ def now()
   # La llamada a GETDATE() desde ODBC no retorna precision de milisegundos, que es necesaria para los registros de log.
   # La llamada a SYSDATETIME() retorna un valor de alta precision que no es compatible para pegar en los campos del tipo DATATIME.
   # La linea de abajo obtiene la hora en formato de SYSDATE y le trunca los ultimos digitos para hacer que el valor sea compatible con los campos DATETIME.
-  (DB['SELECT SYSDATETIME() AS [now]'].map(:now)[0]).to_s[0..22]
+  (DB['SELECT SYSDATETIME() AS [now]'].map(:now)[0]).to_s[0..18]
 end
 
 def diff(unit, t0, t1)
