@@ -32,7 +32,8 @@ module BlackStack
     # uid: id de un registro en la tabla lnuser.
     # description: backtrace de la excepcion.
     #
-    def notifyError(uid, description, oid=nil, screenshot_file=nil, assigned_process=nil)
+    def notifyError(uid, description, oid=nil, screenshot_file=nil, url=nil, assigned_process=nil)
+      url = !url.nil? ? url : "#{BlackStack::Pampa::api_protocol}://#{self.ws_url}:#{self.ws_port}/api1.3/bots/boterror.json"
       # subo el error
       nTries = 0
       bSuccess = false
@@ -41,7 +42,6 @@ module BlackStack
       while (nTries < 5 && bSuccess == false)
         begin
           nTries = nTries + 1
-          url = "#{BlackStack::Pampa::api_protocol}://#{self.ws_url}:#{self.ws_port}/api1.3/bots/boterror.json"
           res = BlackStack::Netting::call_post(url, # TODO: migrar a RestClient para poder hacer file upload
             'api_key' => BlackStack::Pampa::api_key, 
             'id_lnuser' => uid, 
