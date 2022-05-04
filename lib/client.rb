@@ -30,6 +30,7 @@ module BlackStack
     end
   
     # returns the hosts belong this client
+    # TODO: deprecated
     def own_hosts()
       BlackStack::LocalHost.where(:id_client=>self.id, :delete_time=>nil)
     end
