@@ -27,7 +27,7 @@ module BlackStack
         return BlackStack::Division.where(:central=>true).first
       end
     end
-  
+
     def worker()
       BlackStack::Worker.where(:name=>self.fullWorkerName).first
     end
@@ -95,7 +95,7 @@ module BlackStack
         while (self.canRun?)
           # reseteo en contador nested del logger
           self.logger.reset()
-  
+
           # announcing my in the log
           logger.log "Going to Run Local"
           logger.log "Process: #{self.assigned_process.to_s}."
@@ -110,7 +110,7 @@ module BlackStack
             GC.start
             DB.disconnect
             logger.done
-  
+
             # cargo el objeto worker
             logger.logs "Load the worker... "
             the_worker = self.worker
@@ -132,6 +132,7 @@ module BlackStack
             
           rescue => e
             puts ""
+            self.notifyError(nil, "Local Process Error: #{e.to_s}\n#{e.backtrace.join("\n")}")
             logger.log "Local Process Error: " + e.to_s + "\r\n" + e.backtrace.join("\r\n").to_s
           end
   
