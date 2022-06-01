@@ -1,3 +1,5 @@
+![logo](logo.png)
+
 # Pampa
 
 **Pampa** is a Ruby library for distributing computing providing the following features:
@@ -16,13 +18,13 @@ The **Pampa** framework may be widely used for:
 
 and any other tasks that requires a virtually infinite amount of CPU computing and memory resources.
 
-# Installation
+## Installation
 
 ```cmd
 gem install pampa_workers
 ```
 
-# 1. Getting Started
+## 1. Getting Started
 
 This is a short guide to have running a **Pampa worker** who can easily switch between different **child processes**.
 
@@ -30,7 +32,7 @@ You can easily setup, manage and monitor your **Pampa Workers** through our Expa
 
 **Additional Note:** As of Apr-21, [**ExpandedVenture**](https://expandedventure.com) is a starting-up holding of SaaS products, like [ConnectionSphere](https://ConnectionSphere.com). Most of its other services are either prototypes or beta.
 
-## 1.1. Getting Your API-KEY
+### 1.1. Getting Your API-KEY
 
 1. Signup to ConnectionSphere here: 
 [https://ConnectionSphere.com/signup](https://ConnectionSphere.com/signup)
@@ -40,7 +42,7 @@ You can easily setup, manage and monitor your **Pampa Workers** through our Expa
 2. Generate your API-KEY as is explained in this tutorial:
 [https://help.expandedventure.com/developers/getting-your-api-key](https://help.expandedventure.com/developers/getting-your-api-key)
 
-## 1.2. Running a Worker
+### 1.2. Running a Worker
 
 Create a new ruby script `example01.rb` with this little piece of code:
 
@@ -53,7 +55,7 @@ Create a new ruby script `example01.rb` with this little piece of code:
 ```ruby
 require 'pampa_workers'
 
-# parse the command line parameters
+## parse the command line parameters
 parser = BlackStack::SimpleCommandLineParser.new(
   :description => 'This command will launch a Pampa worker.', 
   :configuration => [{
@@ -64,21 +66,21 @@ parser = BlackStack::SimpleCommandLineParser.new(
   }]
 )
 
-# setup connection to the Pampa server
+## setup connection to the Pampa server
 BlackStack::Pampa::set_api_url({
-  :api_key => '<write your API-KEY here>', # write your API-KEY here
+  :api_key => '<write your API-KEY here>', ## write your API-KEY here
   :api_protocol => 'https',
-  :api_domain => 'connectionsphere.com', # use 127.0.0.1 if you are running ConnectionSphere in your dev environment
+  :api_domain => 'connectionsphere.com', ## use 127.0.0.1 if you are running ConnectionSphere in your dev environment
   :api_port => 443,
 })
 
-# map the name of this worker
+## map the name of this worker
 worker_name = parser.value('name')
 
-# create an instance of the process class
+## create an instance of the process class
 PROCESS = BlackStack::MyParentProcess.new( worker_name, 'local' )
 
-# run the process
+## run the process
 PROCESS.run()
 ```
 
@@ -102,7 +104,7 @@ that means that the worker has been registered successfully, but it has not any 
 
 The worker will keep polling our server until it finds it has been assigned with process to run.
 
-## 1.3. Starting a Process
+### 1.3. Starting a Process
 
 This section is about assigning a process to the worker.
 
@@ -115,7 +117,7 @@ This is just a dummy process that will print `'Hello World'` in the console.
 ```ruby
 require 'pampa_workers'
 
-# parse the command line parameters
+## parse the command line parameters
 parser = BlackStack::SimpleCommandLineParser.new(
   :description => 'This command will launch a Pampa worker.', 
   :configuration => [{
@@ -131,15 +133,15 @@ parser = BlackStack::SimpleCommandLineParser.new(
   }]
 )
 
-# setup connection to the Pampa server
+## setup connection to the Pampa server
 BlackStack::Pampa::set_api_url({
-  :api_key => '56D608FC-645D-4A7B-9C38-94C853CADD5A', # write your API-KEY here
+  :api_key => '56D608FC-645D-4A7B-9C38-94C853CADD5A', ## write your API-KEY here
   :api_protocol => 'https',
   :api_domain => 'connectionsphere.com',
   :api_port => 443,
 })
 
-# child process definition
+## child process definition
 class MyExampleProcess < BlackStack::MyRemoteProcess  
   def process(argv)
     begin
@@ -147,17 +149,17 @@ class MyExampleProcess < BlackStack::MyRemoteProcess
     rescue => e
       puts "ERROR: #{e.to_s}"
     end
-  end # process  
-end # class 
+  end ## process  
+end ## class 
 
-# map the name of this worker
+## map the name of this worker
 worker_name = parser.value('name')
 division_name = parser.value('division')
 
-# create an instance of the process class
+## create an instance of the process class
 PROCESS = MyExampleProcess.new( worker_name, division_name )
 
-# run the process
+## run the process
 PROCESS.run()
 ```
 
@@ -201,7 +203,7 @@ Hello World!
 2021-04-28 13:25:13: Update from central (2)...
 ```
 
-# 2. Dynamic Reconfiguration  
+## 2. Dynamic Reconfiguration  
 
 In this section, you will be able to get your worker switching from one process to the other (**dynamic reconfiguration**).
 
@@ -252,7 +254,7 @@ Hello ConnectionSphere.com!
 2021-04-28 13:40:40: Update worker (2)...
 ```
 
-# 3. Distributing Jobs
+## 3. Distributing Jobs
 
 You can run 2 or more workers, with different names, each one in one different consoles.
 
@@ -284,7 +286,7 @@ The assignation of tasks to the different workers is done by a [**dispatcher**](
 
 Refer to [Pampa Dispatcher](https://github.com/leandrosardi/pampa_dispatcher) to know how to distribute tasks along many workers.
 
-# 4. Error Handling, Job-Retry and Fault Tolerance
+## 4. Error Handling, Job-Retry and Fault Tolerance
 
 Some kind of processes use to fail time to time.
 
@@ -294,11 +296,11 @@ Your [**dispatcher**](https://github.com/leandrosardi/pampa_dispatcher) should b
 
 Refer to [Pampa Dispatcher](https://github.com/leandrosardi/pampa_dispatcher) to know how to distribute tasks along many workers.
 
-# 5. Announcing the Worker
+## 5. Announcing the Worker
 
 *(pending)*
 
-# 6. Further Work
+## 6. Further Work
 
 Next features to be added to **Pampa**.
 
@@ -315,3 +317,8 @@ Next features to be added to **Pampa**.
 6. Alert Notifications to the User when a Worker is Not Being Announced
 	- track the average delay between annoucnements, in order to suggest the optimal value.
   - show time charts of the delays between announcements.
+
+
+## 7. Dependencies
+
+The logo has been taken from [here](https://www.shareicon.net/lines-circles-endpoints-nodes-658150).
