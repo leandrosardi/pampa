@@ -1,5 +1,5 @@
 
-# Pampa - Ruby Framework for Async & Distributed Data Processing
+# Pampa - Async & Distributed Data Processing
 
 **Pampa** is a Ruby library for async & distributing computing providing the following features:
 
@@ -31,7 +31,9 @@ gem install pampa
 
 ## 1. Getting Started
 
-This example set up a mesh of worker processes to build a list of odd numbers.
+This example set up a **cluster** of **worker** processes to process all the numbers from 1 to 100,000; and build the list of odd numbers inside such a range.
+
+**Important:** For working with a very large set of values (example: `(1..10**500000)`), refer to section [2. Working with Very Large Set of Values](???).
 
 ### Define a Cluster
 
@@ -89,7 +91,7 @@ BlackStack::Pampa.add_job({
   # Define the array of tasks.
   # Each element of the array must be a hash.
   # (Pampa will add required keys to each task for dispatching)
-  :tasks => [1..1*10^500].map { |n| { :value => n } }
+  :tasks => (1..1*10**5).to_a.map { |n| { :value => n } }
 
   # Function to execute for each task.
   :processing_function => Proc.new do |job, worker, *args|
@@ -109,6 +111,10 @@ while true
   BlackStack::Pampa.dispatch(:search_odd_numbers)
 end
 ```
+
+## 2. Working with Very Large Set of Values
+
+_(pending)_
 
 ## 2. Setting Up Output Log File
 
@@ -139,10 +145,6 @@ keep this parameter nil if you want to use the default algorithm
 
 additional function to choose the records to retry
 keep this parameter nil if you want to use the default algorithm
-
-## 6. Elastic Processing: `:max_pending_tasks`
-
-_(pending)_
 
 ## 7. Advanced Nodes Connection
 
