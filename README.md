@@ -3,25 +3,31 @@
 
 **Pampa** is a Ruby library for async & distributing computing providing the following features:
 
-* cluster-management with dynamic reconfiguration (joining and leaving nodes);
-* distribution of the computation jobs to the (active) nodes; 
-* error handling, job-retry and fault tolerance;
-* fast (non-direct) communication to ensure realtime capabilities.
+- cluster-management with dynamic reconfiguration (joining and leaving nodes);
+- distribution of the computation jobs to the (active) nodes;
+- error handling, job-retry, and fault tolerance;
+- fast (non-direct) communication to ensure real-time capabilities.
 
 The **Pampa** framework may be widely used for:
 
-* large scale web scraping with what we call a "bot-farm"; 
-* payments processing for large-scale ecommerce websites;
-* reports generation for high demanded SaaS platforms;
-* heavy mathematical model computing; 
+- large scale web scraping with what we call a "bot-farm";
+- payments processing for large-scale eCommerce websites;
+- reports generation for highly demanded SaaS platforms;
+- heavy mathematical model computing;
 
-and any other tasks that requires a virtually infinite amount of CPU computing and memory resources.
+and any other tasks that require a virtually infinite amount of CPU computing and memory resources.
 
 ## Outline
 
-- Installation
-- 1. Getting Started
-....
+- [Installation](#)
+1. [Getting Started]()
+
+    - [Define a Cluster]()
+    - [Define a Job]()
+    - [Start Processing]()
+
+2. 
+
 
 ## Installation
 
@@ -88,11 +94,15 @@ BlackStack::Pampa.add_job({
   # Default: 3
   :max_try_times => 3,
 
-  # Define the array of tasks.
-  # Each element of the array must be a hash.
-  # (Pampa will add required keys to each task for dispatching)
-  :tasks => (1..1*10**5).to_a.map { |n| { :value => n } }
-
+  # Define the tasks table: each record is a task.
+  # The tasks table must have some specific fields for handling the tasks dispatching.
+  :table => Numbers, # Note, that we are sending a class object here
+  :field_id => 'odd_checking_reservation_id',
+  :field_time => 'odd_checking_reservation_time', 
+  :field_times => 'odd_checking_reservation_times',
+  :field_start_time => 'odd_checking_start_time',
+  :field_end_time => 'odd_checking_end_time',
+  
   # Function to execute for each task.
   :processing_function => Proc.new do |job, worker, *args|
     # TODO: Code Me!
@@ -112,45 +122,54 @@ while true
 end
 ```
 
-## 2. Working with Very Large Set of Values
+## 2. Elastic Jobs Jobs
 
-_(pending)_
+Define the maximum tasks tasks allowed.
+Define the minumum number of workers assigned for a job.
+Define the maximum number of workers assigned for a job.
 
-## 2. Setting Up Output Log File
+
+## 3. Define the Output Log File
 
 ```ruby
 BlackStack::Pampa.set_log_filename '~/pampa.log'
 ```
 
-## 2. Customized Selection of Pending Tasks: `:queue_slots_function`
+## 4. Customized Counting Pending Tasks: `:queue_slots_function`
 
 additional function to decide how many records are pending for processing
 it should returns an integer
 keep it nil if you want to run the default function
 
-## 3. Customized Selection of Workers: `:allowing_function`
+## 5. Customized Selecting of Workers: `:allowing_function`
 
 additional function to decide if the worker can dispatch or not
 example: use this function when you want to decide based on the remaining credits of the client
 it should returns true or false
 keep it nil if you want it returns always true
 
-## 4. Customized Selection of Available Tasks: `:selecting_function`
+## 6. Customized Selection of Queue Tasks: `:selecting_function`
 
 additional function to choose the records to launch
 it should returns an array of IDs
 keep this parameter nil if you want to use the default algorithm
 
-## 5. Customized Selection of Tasks for Relaunching: `:relaunching_function`
+## 7. Customized Tasks Relaunching: `:relaunching_function`
 
 additional function to choose the records to retry
 keep this parameter nil if you want to use the default algorithm
 
-## 7. Advanced Nodes Connection
+## 8. Advanced Nodes Connection
 
 **Pampa** uses **SSH** to connect each **node** to deploy **workers**.
 
 If you need advanced features for connecting a **node** (like using a key file instead of password), refer to the [blackstack-nodes documentation](https://github.com/leandrosardi/blackstack-nodes).
+
+## 9. Multi-level Dispatching
+
+_(pending)_
+
+## 
 
 ## 8. Setup Resources for Workers
 
@@ -177,10 +196,6 @@ n = BlackStack::Pampa.add_nodes([{
 
 }])
 ```
-
-## 9. Multi-level Dispatching
-
-_(pending)_
 
 ## Inspiration
 

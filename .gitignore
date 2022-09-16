@@ -3,23 +3,9 @@
 
 # ignore log files
 *.log
-*.log.data
 
 # ignore .project file created by IDE
 .project
 
 # production configuration files
 config.rb
-config.prod.rb
-
-# backup files
-*.bak 
-
-# PID files
-*.pid
-
-# clients' storage folder
-/public/clients/*/
-
-# temporal folder where store photos to upload to LinkedIn profiles
-/cli/temp/
