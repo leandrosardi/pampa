@@ -165,6 +165,14 @@ keep this parameter nil if you want to use the default algorithm
 
 If you need advanced features for connecting a **node** (like using a key file instead of password), refer to the [blackstack-nodes documentation](https://github.com/leandrosardi/blackstack-nodes).
 
+## 9. Scheduled Tasks
+
+_(pending)_
+
+## 9. Recurrent Tasks
+
+_(pending)_
+
 ## 9. Multi-level Dispatching
 
 _(pending)_
