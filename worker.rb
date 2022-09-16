@@ -11,7 +11,7 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
         :name=>'delay',
         :mandatory=>false,
         :default=>30, 
-        :description=>'Minimum delay between loops. A minimum of 10 seconds is recommended, in order to don't hard the database server. Default is 30 seconds.', 
+        :description=>'Minimum delay between loops. A minimum of 10 seconds is recommended, in order to don\'t hard the database server. Default is 30 seconds.', 
         :type=>BlackStack::SimpleCommandLineParser::INT,
     }, {
         :name=>'debug', 

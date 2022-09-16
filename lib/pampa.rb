@@ -22,6 +22,11 @@ module BlackStack
             @@logger
         end
 
+        # define a connection string to the database.
+        def self.set_connection_string(s)
+            @@connection_string = s
+        end
+
         # return connection string to the database. Example: mysql2://user:password@localhost:3306/database
         def self.connection_string()
             @@connection_string
@@ -29,7 +34,7 @@ module BlackStack
 
         # add a node to the cluster.
         def self.add_node(h)
-            @@nodes << BlackStack::Infrastructure::Node.new(h)
+            @@nodes << BlackStack::Pampa::Node.new(h)
         end # def self.add_node(h)
 
         # add an array of nodes to the cluster.
@@ -45,7 +50,7 @@ module BlackStack
 
         # add a job to the cluster.
         def self.add_job(h)
-            @@jobs << BlackStack::Infrastructure::Job.new(h)
+            @@jobs << BlackStack::Pampa::Job.new(h)
         end # def self.add_job(h)
 
         # add an array of jobs to the cluster.
@@ -104,8 +109,6 @@ module BlackStack
         class Worker
             # name to identify uniquely the worker
             attr_accessor :id
-            # node where this worker is belonging
-            attr_accessor :node
             # return an array with the errors found in the description of the job
             def self.descriptor_errors(h)
                 errors = []
@@ -117,7 +120,12 @@ module BlackStack
               errors = BlackStack::Pampa::Worker.descriptor_errors(h)
               raise "The worker descriptor is not valid: #{errors.uniq.join(".\n")}" if errors.length > 0        
               self.id = h[:id]
-              self.node = BlackStack::Pampa::Node.new(h[:node]) # create object from hash descriptor
+            end
+            # return a hash descriptor of the worker
+            def to_hash()
+                {
+                    :id => self.id,
+                }
             end
         end
 
@@ -142,8 +150,7 @@ module BlackStack
               end
               # initialize the node
               def initialize(h, i_logger=nil)
-                self.parameters = h
-                errors = BlackStack::Pampa::NodeModule.descriptor_errors(h)
+                errors = BlackStack::Pampa::Node.descriptor_errors(h)
                 raise "The node descriptor is not valid: #{errors.uniq.join(".\n")}" if errors.length > 0
                 super(h, i_logger)
                 self.max_workers = h[:max_workers]
@@ -152,6 +159,16 @@ module BlackStack
                     self.workers << BlackStack::Pampa::Worker.new({:id => i, :node => self.to_hash})
                 end
             end # def self.create(h)
+            # returh a hash descriptor of the node
+            def to_hash()
+                ret = super()
+                ret[:max_workers] = self.max_workers
+                ret[:workers] = []
+                self.workers.each do |worker|
+                    ret[:workers] << worker.to_hash
+                end
+                ret
+            end
         end # class Node
 
         # stub job class

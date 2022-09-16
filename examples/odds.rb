@@ -1,7 +1,18 @@
-# [1..1*10^500].map { |n| { :value => n } }
+require_relative '../lib/pampa.rb'
 
-a = (1..1*10**5).to_a
+BlackStack::Pampa.add_nodes(
+  [
+    {
+        :name => 'node1',
+        # setup SSH connection parameters
+        :net_remote_ip => '127.0.0.1',  
+        :ssh_username => 'ubuntu', # example: root
+        :ssh_port => 22,
+        :ssh_password => '2404',
+        # setup max number of worker processes
+        :max_workers => 10,
+    },
+  ]
+)
 
-puts a.size
-
-#puts a.to_s
+BlackStack::Pampa.deploy
