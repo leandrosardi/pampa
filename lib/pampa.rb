@@ -67,7 +67,7 @@ module BlackStack
         # return a hash descriptor of the whole configuration of the cluster.
         def self.to_hash()
             {
-                :hello => "world",
+                :hello => 'world',
             }
         end # def self.to_hash()
 
@@ -85,23 +85,45 @@ module BlackStack
             raise "The connection string is empty" if @@connection_string.empty?
             # validate: the connection string is not blank
             raise "The connection string is blank" if @@connection_string.strip.empty?
+            # getting logger
+            l = self.logger()
             # iterate the nodes
             @@nodes.each { |node|
-                # connect the node
-                node.connect()
-                # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
-                node.exec('mv ~/pampa ~/pampa.'+Time.now().to_i.to_s)
-                # create a new folder ~/code. - ignore if it already exists.
-                node.exec('mkdir ~/pampa')
-                # build the file ~/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have double-quotes (") in the string.
-                node.exec('echo "'+BlackStack::Pampa.to_hash.to_s+'" > ~/pampa/config.rb')
-                # copy the file ~/pampa/worker.rb to the remote node. - Be sure the script don't have double-quotes (") in the string.
-                node.exec('echo "'+File.read(File.dirname(__FILE__)+'/worker.rb')+'" > ~/pampa/worker.rb')
-                # run the number of workers specified in the configuration of the Pampa module.
-                node.workers.each { |worker|
-                    # run the worker
-                    #worker.run()
-                }
+                l.logs("node:#{node.name()}... ")
+                    # connect the node
+                    l.logs("Connecting... ")
+                    node.connect()
+                    l.done
+                    # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
+                    l.logs("Renaming old folder... ")
+                    node.exec('mv ~/pampa ~/pampa.'+Time.now().to_i.to_s, false)
+                    l.done
+                    # create a new folder ~/code. - ignore if it already exists.
+                    l.logs("Creating new folder... ")
+                    node.exec('mkdir ~/pampa', false)
+                    l.done
+                    # build the file ~/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
+                    l.logs("Building config file... ")
+                    s = BlackStack::Pampa.to_hash.to_s
+                    s = "echo \"#{s.gsub(/"/, "\\\"")}\" > ~/pampa/config.rb"                    
+                    node.exec(s, false)
+                    l.done
+                    # copy the file ~/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
+                    l.logs("Copying worker file... ")
+                    #s = "echo \"#{File.read(File.dirname(__FILE__)+'/../worker.rb').gsub(/"/, "\\\"")}\" > ~/pampa/worker.rb'"
+                    s = "echo \"#{File.read(File.dirname(__FILE__)+'/../worker.rb')}\" > ~/pampa/worker.rb"
+                    node.exec(s, false)
+                    l.done
+                    # run the number of workers specified in the configuration of the Pampa module.
+                    node.workers.each { |worker|
+                        # run the worker
+                        #worker.run()
+                    }
+                    # disconnect the node
+                    l.logs("Disconnecting... ")
+                    node.disconnect()
+                    l.done
+                l.done
             } # @@nodes.each do |node|            
         end
 
