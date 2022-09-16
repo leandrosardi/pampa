@@ -2,8 +2,7 @@
 require 'simple_command_line_parser'
 # require the gem sequel for connecting to the database and handle ORM classes.
 require 'sequel'
-# requiore the config.rb file where the jobs are defined.
-require_relative './config'
+
 # parse command line parameters
 PARSER = BlackStack::SimpleCommandLineParser.new(
     :description => 'This script starts an infinite loop. Each loop will look for a task to perform. Must be a delay between each loop.',
@@ -20,19 +19,26 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
         :description=>'Activate this flag if you want to require the `pampa.rb` file from the same Pampa project folder, insetad to require the gem as usual.', 
         :type=>BlackStack::SimpleCommandLineParser::BOOL,
     }, {
-        :name=>'connection_string', 
+        :name=>'id', 
         :mandatory=>true, 
-        :description=>'Connection string to the database. Example: mysql2://user:password@localhost:3306/database', 
+        :description=>'Write here a unique identifier of the worker in this node.', 
         :type=>BlackStack::SimpleCommandLineParser::STRING,
     }]
 )
 
 # require the pampa library
 require 'pampa' if !PARSER.value('debug')
-require_relative './lib/pampa.rb' if PARSER.value('debug')
+require '~/code/pampa/lib/pampa.rb' if PARSER.value('debug')
+
+# requiore the config.rb file where the jobs are defined.
+require_relative './config'
 
 # connect the database
-DB = Sequel.connect(PARSER.value('connection_string'))
+s = BlackStack::Pampa.connection_string
+puts
+puts s
+puts
+DB = Sequel.connect(s)
 
 # start the loop
 while true

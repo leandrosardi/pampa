@@ -8,18 +8,26 @@ module BlackStack
         @@workers = []
         @@nodes = []
         @@jobs = []
+        # logger configuration
+        @@log_filename = nil
         @@logger = BlackStack::DummyLogger.new(nil)
         # Connection string to the database. Example: mysql2://user:password@localhost:3306/database
         @@connection_string = nil
         
         # define a filename for the log file.
         def self.set_log_filename(s)
+            @@log_filename = s
             @@logger = BlackStack::LocalLogger.new(s)
         end
 
         # return the logger.
         def self.logger()
             @@logger
+        end
+
+        # return the log filename.
+        def self.log_filename()
+            @@log_filename
         end
 
         # define a connection string to the database.
@@ -63,14 +71,33 @@ module BlackStack
                 self.add_job(h)
             end
         end # def self.add_jobs(a)
-
+=begin
         # return a hash descriptor of the whole configuration of the cluster.
         def self.to_hash()
-            {
-                :hello => 'world',
+            ret = {
+                :log_filename => self.log_filename,
+                :connection_string => self.connection_string,
             }
+            #ret[:workers] = []
+            #@@workers.each do |w|
+            #    ret[:workers] << w.to_hash
+            #end
+            ret[:nodes] = []
+            @@nodes.each do |n|
+                ret[:nodes] << n.to_hash
+            end
+            ret[:jobs] = []
+            @@jobs.each do |j|
+                ret[:jobs] << j.to_hash
+            end
+            ret
         end # def self.to_hash()
 
+        # setup from a whole hash descriptor
+        def self.initialize(h)
+            # TODO
+        end
+=end
         # connect the nodes via ssh.
         # rename any existing folder ~/pampa to ~/pampa.<current timestamp>.
         # create a new folder ~/pampa.
@@ -104,8 +131,7 @@ module BlackStack
                     l.done
                     # build the file ~/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
                     l.logs("Building config file... ")
-                    s = BlackStack::Pampa.to_hash.to_s
-                    s = "echo \"#{s.gsub(/"/, "\\\"")}\" > ~/pampa/config.rb"                    
+                    s = "echo \"##{File.read(File.dirname(__FILE__)+'/../config.rb')}\" > ~/pampa/config.rb"                    
                     node.exec(s, false)
                     l.done
                     # copy the file ~/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
@@ -117,7 +143,8 @@ module BlackStack
                     # run the number of workers specified in the configuration of the Pampa module.
                     node.workers.each { |worker|
                         # run the worker
-                        #worker.run()
+                        s = "nohup ruby ~/pampa/worker.rb id=#{worker.id} connection_string=#{BlackStack::Pampa.connection_string} &"
+                        #node.exec(s, false)
                     }
                     # disconnect the node
                     l.logs("Disconnecting... ")
@@ -243,6 +270,31 @@ module BlackStack
             # Function to execute for each task.
             attr_accessor :processing_function
             
+            # return a hash descriptor of the job
+            def to_hash()
+                {
+                    :name => self.name,
+                    :table => self.table,
+                    :field_primary_key => self.field_primary_key,
+                    :field_id => self.field_id,
+                    :field_time => self.field_time,
+                    :field_times => self.field_times,
+                    :field_start_time => self.field_start_time,
+                    :field_end_time => self.field_end_time,
+                    :queue_size => self.queue_size,
+                    :max_job_duration_minutes => self.max_job_duration_minutes,
+                    :max_try_times => self.max_try_times,
+                    :occupied_function => self.occupied_function.to_s,
+                    :allowing_function => self.allowing_function.to_s,
+                    :selecting_function => self.selecting_function.to_s,
+                    :relaunching_function => self.relaunching_function.to_s,
+                    :relauncher_function => self.relauncher_function.to_s,
+                    :starter_function => self.starter_function.to_s,
+                    :finisher_function => self.finisher_function.to_s,
+                    :processing_function => self.processing_function.to_s
+                }
+            end
+
             # return an array with the errors found in the description of the job
             def self.descriptor_errors(h)
                 errors = []
