@@ -19,6 +19,18 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
         :description=>'Activate this flag if you want to require the `pampa.rb` file from the same Pampa project folder, insetad to require the gem as usual.', 
         :type=>BlackStack::SimpleCommandLineParser::BOOL,
     }, {
+        :name=>'pampa', 
+        :mandatory=>false,
+        :default=>'./config.rb', 
+        :description=>'Ruby file to require where `debug` is activated.', 
+        :type=>BlackStack::SimpleCommandLineParser::STRING,
+    }, {
+        :name=>'config', 
+        :mandatory=>false,
+        :default=>'./config.rb', 
+        :description=>'Ruby file where is defined the connection-string and jobs.', 
+        :type=>BlackStack::SimpleCommandLineParser::STRING,
+    }, {
         :name=>'id', 
         :mandatory=>true, 
         :description=>'Write here a unique identifier of the worker in this node.', 
@@ -28,28 +40,29 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
 
 # require the pampa library
 require 'pampa' if !PARSER.value('debug')
-require '~/code/pampa/lib/pampa.rb' if PARSER.value('debug')
+require PARSER.value('pampa') if PARSER.value('debug')
 
 # requiore the config.rb file where the jobs are defined.
-require_relative './config'
+require_relative PARSER.value('config')
 
 # connect the database
 s = BlackStack::Pampa.connection_string
-puts
-puts s
-puts
 DB = Sequel.connect(s)
 
 # start the loop
 while true
     # get the start loop time
     start = Time.now()
-    # get the next task to process
+    
+    # TODO: get the next task to process
+    # TODO: process the tasks
 
     # get the end loop time
     finish = Time.now()
+    
     # get different in seconds between start and finish
     diff = finish - start
+    
     # if diff > 30 seconds
     if diff > PARSER.value('delay')
         # sleep for 30 seconds
