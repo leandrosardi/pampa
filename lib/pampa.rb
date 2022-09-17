@@ -105,7 +105,12 @@ module BlackStack
         # copy the file ~/pampa/worker.rb to the remote node.
         # run the number of workers specified in the configuration of the Pampa module.
         # return an array with the IDs of the workers.
-        def self.deploy()
+        #
+        # Parameters:
+        # - config: relative path of the configuration file. Example: '../config.rb'
+        # - worker: relative path of the worker.rb file. Example: '../worker.rb'
+        # 
+        def self.deploy(config_filename='./config.rb', worker_filename='./worker.rb')
             # validate: the connection string is not nil
             raise "The connection string is nil" if @@connection_string.nil?
             # validate: the connection string is not empty
@@ -131,20 +136,19 @@ module BlackStack
                     l.done
                     # build the file ~/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
                     l.logs("Building config file... ")
-                    s = "echo \"##{File.read(File.dirname(__FILE__)+'/../config.rb')}\" > ~/pampa/config.rb"                    
+                    s = "echo \"#{File.read(config_filename)}\" > ~/pampa/config.rb"                    
                     node.exec(s, false)
                     l.done
                     # copy the file ~/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
                     l.logs("Copying worker file... ")
-                    #s = "echo \"#{File.read(File.dirname(__FILE__)+'/../worker.rb').gsub(/"/, "\\\"")}\" > ~/pampa/worker.rb'"
-                    s = "echo \"#{File.read(File.dirname(__FILE__)+'/../worker.rb')}\" > ~/pampa/worker.rb"
+                    s = "echo \"#{File.read(worker_filename)}\" > ~/pampa/worker.rb"
                     node.exec(s, false)
                     l.done
                     # run the number of workers specified in the configuration of the Pampa module.
                     node.workers.each { |worker|
                         # run the worker
-                        s = "nohup ruby ~/pampa/worker.rb id=#{worker.id} connection_string=#{BlackStack::Pampa.connection_string} &"
-                        #node.exec(s, false)
+                        s = "nohup ruby ~/pampa/worker.rb id=#{worker.id} config=~/pampa/config.rb debug=yes pampa=~/code/pampa/lib/pampa.rb &"
+                        node.exec(s, false)
                     }
                     # disconnect the node
                     l.logs("Disconnecting... ")

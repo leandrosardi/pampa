@@ -17,31 +17,33 @@ The **Pampa** framework may be widely used for:
 
 and any other tasks that require a virtually infinite amount of CPU computing and memory resources.
 
-## Outline
 
-- [Installation](#)
-1. [Getting Started]()
-
-    - [Define a Cluster]()
-    - [Define a Job]()
-    - [Start Processing]()
-
-2. 
+1. [Installation](#)
+2. [Getting Started]()
+    1. [Define a Cluster]()
+    2. [Define a Job]()
+    3. [Setup Database Connection]()
+    4. [Start Processing]()
+3. 
 
 
-## Installation
+## 1. Installation
 
 ```cmd
 gem install pampa
 ```
 
-## 1. Getting Started
+## 2. Getting Started
 
 This example set up a **cluster** of **worker** processes to process all the numbers from 1 to 100,000; and build the list of odd numbers inside such a range.
 
-**Important:** For working with a very large set of values (example: `(1..10**500000)`), refer to section [2. Working with Very Large Set of Values](???).
+Create a new file `~/config.rb` where you will define your **cluster**, **jobs**, **database connection** and **logging**.
 
-### Define a Cluster
+```bash
+touch ~/config.rb
+```
+
+### 2.1. Defining Clusters
 
 First, you have to define a **cluster** of **workers**.
 
@@ -50,6 +52,8 @@ First, you have to define a **cluster** of **workers**.
 - Each **worker** is a process running on a node.
 
 The code below define your computer as a **node** of 10 **workers**. 
+
+Add this code to your `config.rb` file:
 
 ```ruby
 require 'pampa'
@@ -70,11 +74,13 @@ n = BlackStack::Pampa.add_nodes(
 )
 ```
 
-### Define a Job
+### 2.2. Defining Jobs
 
 A **job** is a sequence of **tasks**. 
 
 Each **task** performs the same **function** on a different record.
+
+Add this code to your `config.rb` file:
 
 ```ruby
 # setup the cluster
@@ -110,32 +116,99 @@ BlackStack::Pampa.add_job({
 })
 ```
 
-### Launch
+### 2.3. Setting Database Connection
+
+Add this code to your `config.rb` file:
 
 ```ruby
-# this line is for starting the workers
-BlackStack::Pampa.deploy
-
-# this line is dispatch tasks to the workers
-while true
-  BlackStack::Pampa.dispatch(:search_odd_numbers)
-end
+require 'sequel'
+BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
 ```
 
-## 2. Elastic Jobs Jobs
+### 2.4. Setting Output Log File
+
+Add this code to your `config.rb` file:
+
+```ruby
+require 'simple_cloud_logging'
+BlackStack::Pampa.set_log_filename '~/pampa.log'
+```
+
+### 2.5. Deploying Your Cluster
+
+```bash
+irb> require_relative './config.rb'
+irb> BlackStack::Pampa.deploy
+```
+
+### 2.5. Dispatching Tasks
+
+```bash
+irb> BlackStack::Pampa.dispatch(:search_odd_numbers)
+```
+
+## 3. Watching Cluster Status
+
+```ruby
+irb> require_relative './config.rb'
+irb> n = BlackStack::Pampa::nodes.first
+irb> w = n.workers.first
+irb> puts "Last log update: #{w.log_minutes_ago.to_s} mins. ago"
+irb> puts "Tasks in queue: #{w.pending_tasks(:search_odd_numbers).to_s}"
+```
+
+Here is a script for watching the whole cluster:
+
+```ruby
+l = BlackStack::Pampa.logger
+
+l.log 'Workers Status Report:'
+
+BlackStack::Pampa.nodes { |n|
+  l.logs "node: #{n.name}... "
+  begin
+    l.logs 'Connecting... '
+    n.connect
+    l.done
+
+    n.workers.each { |w|
+      l.logs "Worker #{w.id}... "
+      begin
+        l.logs 'Last log update: ' 
+        l.logf "#{w.log_minutes_ago.to_s} mins. ago"
+
+        l.logs 'Tasks in queue: '
+        l.logf w.pending_tasks(:search_odd_numbers).to_s
+
+      l.done
+      rescue => e
+        l.error e
+      end
+    }
+
+    l.logs 'Disconnect... '
+    n.disconnect
+    l.done
+
+  l.done
+  rescue => e
+    l.error e
+  end
+}
+```
+
+## 4. Watching Queues Status
+
+**Pampa**
+
+## 5. Elastic Jobs Processing
 
 Define the maximum tasks tasks allowed.
 Define the minumum number of workers assigned for a job.
 Define the maximum number of workers assigned for a job.
 
 
-## 3. Define the Output Log File
-
-```ruby
-BlackStack::Pampa.set_log_filename '~/pampa.log'
-```
-
-## 4. Customized Counting Pending Tasks: `:queue_slots_function`
+## 5. Customized Counting Pending Tasks: `:queue_slots_function`
 
 additional function to decide how many records are pending for processing
 it should returns an integer
