@@ -227,7 +227,7 @@ module BlackStack
           BlackStack::Pampa.jobs.each { |job|
             l.logs("job:#{job.name}... ")
               l.logs("Gettting tasks to relaunch (max #{job.queue_size.to_s})... ")
-              tasks = job.relaunching(job.queue_size)
+              tasks = job.relaunching(job.queue_size+1)
               l.logf("done (#{tasks.size.to_s})")
 
               tasks.each { |task| 
@@ -631,14 +631,16 @@ module BlackStack
               #ds = DB[self.table.to_sym].where("#{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes'")
               #ds = ds.filter("#{self.field_end_time.to_s} IS NULL") if !self.field_end_time.nil?  
               #ds.limit(n).all
-              ds = DB["
+              q = "
                 SELECT * 
                 FROM #{self.table.to_s} 
-                WHERE #{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
+                WHERE #{self.field_time.to_s} IS NOT NULL 
+                AND #{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
                 AND #{self.field_id.to_s} IS NOT NULL 
                 AND #{self.field_end_time.to_s} IS NULL
                 LIMIT #{n}
-              "].all
+              "
+              ds = DB[q].all
             end
         
             # returns an array of failed tasks for restarting.
