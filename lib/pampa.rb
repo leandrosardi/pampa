@@ -144,7 +144,6 @@ module BlackStack
             end
 
             l.logs("job:#{job.name}... ")
-              
               l.logs("Gettting assigned workers... ") 
               assigned = BlackStack::Pampa.workers.select { |worker| worker.attached && worker.assigned_job.to_s == job.name.to_s }
               l.logf("done (#{assigned.size.to_s})")
@@ -153,37 +152,55 @@ module BlackStack
               pendings = job.selecting(job.max_pending_tasks)
               l.logf("done (#{pendings.size.to_s})")
 
-              l.logs("Reached :max_pending_tasks (#{job.max_pending_tasks})?... ")
-              if pendings.size < job.max_pending_tasks
-                l.logf("no")
-
-                l.logs("Unassigning worker... ")
-                w = assigned.first
-                w.assigned_job = nil
-                l.done
-
-                l.logs("Adding worker from the list of unassigned... ")
-                workers << w
-                l.done
-              else
+              l.logs("Has 0 tasks?.... ")
+              if pendings.size == 0
                 l.logf("yes")
 
-                l.logs("Reached :max_assigned_workers (#{job.max_assigned_workers})?... ")
-                if assigned.size >= job.max_assigned_workers
-                  l.logf("yes")
-                else
+                l.logs("Unassigning all assigned workers... ")
+                assigned.each { |w|
+                  l.logs("Unassigning worker #{w.id}... ")
+                  w.assigned_job = nil
+                  l.done
+
+                  l.logs("Adding worker #{w.id} to the list of unassigned... ")
+                  workers << w
+                  l.done
+                }
+              else
+                l.logf("no")
+
+                l.logs("Reached :max_pending_tasks (#{job.max_pending_tasks}) and more than 1 assigned workers ?... ")
+                if pendings.size < job.max_pending_tasks && assigned.size > 1
                   l.logf("no")
 
-                  l.logs("Assigning worker... ")
-                  w = workers.first
-                  w.assigned_job = job.name.to_sym
+                  l.logs("Unassigning worker... ")
+                  w = assigned.first # TODO: find a worker with no pending tasks
+                  w.assigned_job = nil
                   l.done
 
-                  l.logs("Removing worker from the list of unassigned... ")
-                  workers.delete(w)
+                  l.logs("Adding worker from the list of unassigned... ")
+                  workers << w
                   l.done
+                else
+                  l.logf("yes")
+
+                  l.logs("Reached :max_assigned_workers (#{job.max_assigned_workers}) and more than 0 assigned workers?... ")
+                  if assigned.size >= job.max_assigned_workers && assigned.size > 0
+                    l.logf("yes")
+                  else
+                    l.logf("no")
+
+                    l.logs("Assigning worker... ")
+                    w = workers.first
+                    w.assigned_job = job.name.to_sym
+                    l.done
+
+                    l.logs("Removing worker from the list of unassigned... ")
+                    workers.delete(w)
+                    l.done
+                  end
                 end
-              end
+              end 
             l.done
           }
         end
