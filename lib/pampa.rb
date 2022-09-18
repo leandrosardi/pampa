@@ -328,7 +328,7 @@ module BlackStack
             def to_hash()
                 {
                     :name => self.name,
-                    :table => self.table,
+                    :table => DB[table.to_sym],
                     :field_primary_key => self.field_primary_key,
                     :field_id => self.field_id,
                     :field_time => self.field_time,
@@ -361,7 +361,7 @@ module BlackStack
               errors = BlackStack::Pampa::Job.descriptor_errors(h)
               raise "The job descriptor is not valid: #{errors.uniq.join(".\n")}" if errors.length > 0        
               self.name = h[:name]
-              self.table = h[:table]
+              DB[table.to_sym] = h[:table]
               self.field_primary_key = h[:field_primary_key]
               self.field_id = h[:field_id]
               self.field_time = h[:field_time]
@@ -383,8 +383,8 @@ module BlackStack
             # it will select the records with :reservation_id == worker.id, and :start_time == nil
             def occupied_slots(worker)
               if self.occupied_function.nil?
-                return self.table.where(self.field_id.to_sym => worker.id, self.field_start_time.to_sym => nil).all if !self.field_start_time.nil?
-                return self.table.where(self.field_id.to_sym => worker.id).all if self.field_start_time.nil?
+                return DB[table.to_sym].where(self.field_id.to_sym => worker.id, self.field_start_time.to_sym => nil).all if !self.field_start_time.nil?
+                return DB[table.to_sym].where(self.field_id.to_sym => worker.id).all if self.field_start_time.nil?
               else
                 # TODO: validar que retorna un entero
                 return self.occupied_function.call(worker, self)
@@ -417,7 +417,7 @@ module BlackStack
             # choose the records to dispatch
             # returns an array of IDs
             def selecting_dataset(worker, n)
-              ds = self.table.select(self.field_primary_key.to_sym).where(self.field_id.to_sym => nil) 
+              ds = DB[table.to_sym].select(self.field_primary_key.to_sym).where(self.field_id.to_sym => nil) 
               ds = ds.filter(self.field_end_time.to_sym => nil) if !self.field_end_time.nil?  
               ds = ds.filter("#{self.field_times.to_s} IS NULL OR #{self.field_times.to_s} < #{self.max_try_times.to_s}") if !self.field_times.nil? 
               ds.limit(n)
@@ -435,7 +435,7 @@ module BlackStack
             # choose the records to retry
             # returns an array of IDs
             def relaunching_dataset(worker, n)
-              ds = self.table.select(self.field_primary_key.to_sym).where("#{self.field_time.to_s} < DATEADD(mi, -#{self.max_job_duration_minutes.to_i}, GETDATE())")
+              ds = DB[table.to_sym].select(self.field_primary_key.to_sym).where("#{self.field_time.to_s} < DATEADD(mi, -#{self.max_job_duration_minutes.to_i}, GETDATE())")
               ds = ds.filter("#{self.field_end_time.to_s} IS NULL") if !self.field_end_time.nil?  
               #ds = ds.filter("( #{self.field_times.to_s} IS NULL OR #{self.field_times.to_s} < #{self.max_try_times.to_s} ) ") if !self.field_times.nil?
               ds = ds.limit(n)
@@ -482,7 +482,7 @@ module BlackStack
             def run_relaunch(worker)
               # relaunch failed records
               self.relaunching(worker, self.queue_size).each { |id|
-                o = self.table.where(self.field_primary_key.to_sym => id).first
+                o = DB[table.to_sym].where(self.field_primary_key.to_sym => id).first
                 if self.relauncher_function.nil?
                   self.relaunch(o)
                 else
@@ -507,7 +507,7 @@ module BlackStack
                   # count the # of dispatched
                   i += 1
                   # dispatch records
-                  o = self.table.where(self.field_primary_key.to_sym => id).first
+                  o = DB[table.to_sym].where(self.field_primary_key.to_sym => id).first
                   o[self.field_id.to_sym] = worker.id
                   o[self.field_time.to_sym] = now()
                   o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
