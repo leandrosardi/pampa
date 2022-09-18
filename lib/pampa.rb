@@ -206,6 +206,40 @@ module BlackStack
           }
         end
 
+        # iterate the jobs.
+        # for each job, get all the tasks to relaunch.
+        # for each task to relaunch, relaunch it.
+        #
+        # Parameters:
+        # - config: relative path of the configuration file. Example: '../config.rb'
+        # - worker: relative path of the worker.rb file. Example: '../worker.rb'
+        # 
+        def self.relaunch()
+          # validate: the connection string is not nil
+          raise "The connection string is nil" if @@connection_string.nil?
+          # validate: the connection string is not empty
+          raise "The connection string is empty" if @@connection_string.empty?
+          # validate: the connection string is not blank
+          raise "The connection string is blank" if @@connection_string.strip.empty?
+          # getting logger
+          l = self.logger()
+          # iterate the workers
+          BlackStack::Pampa.jobs.each { |job|
+            l.logs("job:#{job.name}... ")
+              l.logs("Gettting tasks to relaunch (max #{job.queue_size.to_s})... ")
+              tasks = job.relaunching(job.queue_size)
+              l.logf("done (#{tasks.size.to_s})")
+
+              tasks.each { |task| 
+                l.logs("Relaunching task #{task[job.field_primary_key.to_sym]}... ")
+                job.relaunch(task)
+                l.done
+              }
+
+            l.done
+          }
+        end
+
         # iterate the workers.
         # for each worker, iterate the job.
         #
@@ -578,7 +612,7 @@ module BlackStack
             def selecting_dataset(n)
               ds = DB[self.table.to_sym].where(self.field_id.to_sym => nil) 
               ds = ds.filter(self.field_end_time.to_sym => nil) if !self.field_end_time.nil?  
-              ds = ds.filter(Sequel.function(:coalesce, self.field_times.to_sym, 0)=>[nil]+self.max_try_times.times.to_a) if !self.field_times.nil? 
+              ds = ds.filter(Sequel.function(:coalesce, self.field_times.to_sym, 0)=>self.max_try_times.times.to_a) if !self.field_times.nil? 
               ds.limit(n).all
             end # selecting_dataset
         
@@ -588,24 +622,32 @@ module BlackStack
                 return self.selecting_dataset(n)
               else
                 # TODO: validar que retorna un array de strings
-                return self.selecting_function.call(self, n)
+                return self.selecting_function.call(n, self)
               end
             end
         
             # returns an array of failed tasks for restarting.
-            def relaunching_dataset()
-              ds = DB[self.table.to_sym].where("#{self.field_time.to_s} < DATEADD(mi, -#{self.max_job_duration_minutes.to_i}, GETDATE())")
-              ds = ds.filter("#{self.field_end_time.to_s} IS NULL") if !self.field_end_time.nil?  
-              ds.all
+            def relaunching_dataset(n)
+              #ds = DB[self.table.to_sym].where("#{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes'")
+              #ds = ds.filter("#{self.field_end_time.to_s} IS NULL") if !self.field_end_time.nil?  
+              #ds.limit(n).all
+              ds = DB["
+                SELECT * 
+                FROM #{self.table.to_s} 
+                WHERE #{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
+                AND #{self.field_id.to_s} IS NOT NULL 
+                AND #{self.field_end_time.to_s} IS NULL
+                LIMIT #{n}
+              "].all
             end
         
             # returns an array of failed tasks for restarting.
-            def relaunching()
+            def relaunching(n)
               if self.relaunching_function.nil?
-                return self.relaunching_dataset()
+                return self.relaunching_dataset(n)
               else
                 # TODO: validar que retorna un array de strings
-                return self.relaunching_function.call()
+                return self.relaunching_function.call(n, self)
               end
             end
             
