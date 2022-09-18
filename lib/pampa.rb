@@ -101,6 +101,7 @@ module BlackStack
         end
 =end
         # connect the nodes via ssh.
+        # kill all Ruby processes except this one.
         # rename any existing folder ~/pampa to ~/pampa.<current timestamp>.
         # create a new folder ~/pampa.
         # build the file ~/pampa/config.rb in the remote node.
@@ -128,6 +129,10 @@ module BlackStack
                     l.logs("Connecting... ")
                     node.connect()
                     l.done
+                    # kill all ruby processes except this one
+                    l.logs("Killing all Ruby processes except this one... ")
+                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false)
+                    l.done
                     # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
                     l.logs("Renaming old folder... ")
                     node.exec('mv ~/pampa ~/pampa.'+Time.now().to_i.to_s, false)
@@ -151,16 +156,50 @@ module BlackStack
                         # run the worker
                         l.logs "Running worker #{worker.id}... "
                         s = "
-                          source /home/#{node.ssh_username}/.rvm/scripts/rvm; 
-                          rvm install 3.1.2; 
-                          rvm --default use 3.1.2;
-                          cd /home/#{node.ssh_username}/pampa; 
-                          export RUBYLIB=/home/#{node.ssh_username}/pampa;
-                          nano ruby worker.rb id=#{worker.id} config=~/pampa/config.rb debug=yes pampa=~/code/pampa/lib/pampa.rb 2>&1 1>/dev/null &
+                          source /home/#{node.ssh_username}/.rvm/scripts/rvm >/dev/null 2>&1; 
+                          rvm install 3.1.2 >/dev/null 2>&1; 
+                          rvm --default use 3.1.2 >/dev/null 2>&1;
+                          cd /home/#{node.ssh_username}/pampa >/dev/null 2>&1; 
+                          export RUBYLIB=/home/#{node.ssh_username}/pampa >/dev/null 2>&1;
+                          nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb debug=yes pampa=~/code/pampa/lib/pampa.rb >/dev/null 2>&1 &
                         "
-                        puts node.exec(s, false)
+                        node.exec(s, false)
                         l.done
                     }
+                    # disconnect the node
+                    l.logs("Disconnecting... ")
+                    node.disconnect()
+                    l.done
+                l.done
+            } # @@nodes.each do |node|            
+        end
+
+        # connect the nodes via ssh.
+        # kill all Ruby processes except this one.
+        #
+        # Parameters:
+        # - config: relative path of the configuration file. Example: '../config.rb'
+        # 
+        def self.stop(config_filename='./config.rb')
+            # validate: the connection string is not nil
+            raise "The connection string is nil" if @@connection_string.nil?
+            # validate: the connection string is not empty
+            raise "The connection string is empty" if @@connection_string.empty?
+            # validate: the connection string is not blank
+            raise "The connection string is blank" if @@connection_string.strip.empty?
+            # getting logger
+            l = self.logger()
+            # iterate the nodes
+            @@nodes.each { |node|
+                l.logs("node:#{node.name()}... ")
+                    # connect the node
+                    l.logs("Connecting... ")
+                    node.connect()
+                    l.done
+                    # kill all ruby processes except this one
+                    l.logs("Killing all Ruby processes except this one... ")
+                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false)
+                    l.done
                     # disconnect the node
                     l.logs("Disconnecting... ")
                     node.disconnect()
@@ -220,7 +259,7 @@ module BlackStack
                 self.max_workers = h[:max_workers]
                 self.workers = []
                 self.max_workers.times do |i|
-                    self.workers << BlackStack::Pampa::Worker.new({:id => i, :node => self.to_hash})
+                    self.workers << BlackStack::Pampa::Worker.new({:id => i+1, :node => self.to_hash})
                 end
             end # def self.create(h)
             # returh a hash descriptor of the node
