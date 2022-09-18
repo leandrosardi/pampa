@@ -153,6 +153,17 @@ irb> BlackStack::Pampa.deploy
 irb> BlackStack::Pampa.dispatch(:search_odd_numbers)
 ```
 
+## 3. Running Workers Manually
+
+```ruby
+irb> require_relative './config.rb'
+irb> BlackStack::Pampa.stop
+```
+
+```bash
+ruby ~/code/pampa/worker.rb id=1 config=~/code/pampa/config.rb debug=yes pampa=~/code/pampa/lib/pampa.rb
+```
+
 ## 3. Watching the Status of a Worker
 
 ```ruby

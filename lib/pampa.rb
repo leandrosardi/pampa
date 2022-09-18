@@ -149,8 +149,17 @@ module BlackStack
                     # run the number of workers specified in the configuration of the Pampa module.
                     node.workers.each { |worker|
                         # run the worker
-                        s = "nohup ruby ~/pampa/worker.rb id=#{worker.id} config=~/pampa/config.rb debug=yes pampa=~/code/pampa/lib/pampa.rb &"
-                        node.exec(s, false)
+                        l.logs "Running worker #{worker.id}... "
+                        s = "
+                          source /home/#{node.ssh_username}/.rvm/scripts/rvm; 
+                          rvm install 3.1.2; 
+                          rvm --default use 3.1.2;
+                          cd /home/#{node.ssh_username}/pampa; 
+                          export RUBYLIB=/home/#{node.ssh_username}/pampa;
+                          nano ruby worker.rb id=#{worker.id} config=~/pampa/config.rb debug=yes pampa=~/code/pampa/lib/pampa.rb 2>&1 1>/dev/null &
+                        "
+                        puts node.exec(s, false)
+                        l.done
                     }
                     # disconnect the node
                     l.logs("Disconnecting... ")
