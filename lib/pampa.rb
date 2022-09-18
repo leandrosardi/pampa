@@ -123,7 +123,7 @@ module BlackStack
         # - config: relative path of the configuration file. Example: '../config.rb'
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
-        def self.elastic(config_filename='./config.rb', worker_filename='./worker.rb')
+        def self.stretch(config_filename='./config.rb', worker_filename='./worker.rb')
           # validate: the connection string is not nil
           raise "The connection string is nil" if @@connection_string.nil?
           # validate: the connection string is not empty
@@ -234,8 +234,8 @@ module BlackStack
                     job = BlackStack::Pampa.jobs.select { |j| j.name.to_s == worker.assigned_job.to_s }.first
                     if job.nil?
                       l.logf("job #{job.name} not found")
-                    else                        
-                      l.done
+                    else
+                      l.logf("done (#{job.run_dispatch(worker).to_s})")
                     end
                   end
                 end
@@ -475,7 +475,7 @@ module BlackStack
             attr_accessor :finisher_function
             # Function to execute for each task.
             attr_accessor :processing_function
-            # Elastic assignation/unassignation of workers
+            # stretch assignation/unassignation of workers
             attr_accessor :max_pending_tasks
             attr_accessor :max_assigned_workers
 
@@ -573,40 +573,38 @@ module BlackStack
               end
             end
         
-            # choose the records to dispatch
-            # returns an array of IDs
+            # returns an array of available tasks for dispatching.
             def selecting_dataset(n)
-              ds = DB[self.table.to_sym].select(self.field_primary_key.to_sym).where(self.field_id.to_sym => nil) 
+              ds = DB[self.table.to_sym].where(self.field_id.to_sym => nil) 
               ds = ds.filter(self.field_end_time.to_sym => nil) if !self.field_end_time.nil?  
               ds = ds.filter(Sequel.function(:coalesce, self.field_times.to_sym, 0)=>[nil]+self.max_try_times.times.to_a) if !self.field_times.nil? 
-              ds.limit(n)
+              ds.limit(n).all
             end # selecting_dataset
         
+            # returns an array of available tasks for dispatching.
             def selecting(n)
               if self.selecting_function.nil?
-                return self.selecting_dataset(n).map { |o| o[self.field_primary_key.to_sym] }
+                return self.selecting_dataset(n)
               else
                 # TODO: validar que retorna un array de strings
                 return self.selecting_function.call(self, n)
               end
             end
         
-            # choose the records to retry
-            # returns an array of IDs
-            def relaunching_dataset(worker, n)
-              ds = DB[self.table.to_sym].select(self.field_primary_key.to_sym).where("#{self.field_time.to_s} < DATEADD(mi, -#{self.max_job_duration_minutes.to_i}, GETDATE())")
+            # returns an array of failed tasks for restarting.
+            def relaunching_dataset()
+              ds = DB[self.table.to_sym].where("#{self.field_time.to_s} < DATEADD(mi, -#{self.max_job_duration_minutes.to_i}, GETDATE())")
               ds = ds.filter("#{self.field_end_time.to_s} IS NULL") if !self.field_end_time.nil?  
-              #ds = ds.filter("( #{self.field_times.to_s} IS NULL OR #{self.field_times.to_s} < #{self.max_try_times.to_s} ) ") if !self.field_times.nil?
-              ds = ds.limit(n)
-              ds
+              ds.all
             end
         
-            def relaunching(worker, n)
+            # returns an array of failed tasks for restarting.
+            def relaunching()
               if self.relaunching_function.nil?
-                return self.relaunching_dataset(worker, n).map { |o| o[self.field_primary_key.to_sym] }
+                return self.relaunching_dataset()
               else
                 # TODO: validar que retorna un array de strings
-                return self.relaunching_function.call(worker, self, n)
+                return self.relaunching_function.call()
               end
             end
             
@@ -615,14 +613,14 @@ module BlackStack
               o[self.field_time.to_sym] = nil
               o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
               o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
-              o.save      
+              DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
             end
         
             def start(o)
               if self.starter_function.nil?
-                o[self.field_start_time.to_sym] = now() if !self.field_start_time.nil?
+                o[self.field_start_time.to_sym] = Time.now() if !self.field_start_time.nil?
                 o[self.field_times.to_sym] = o[self.field_times.to_sym].to_i + 1
-                o.save
+                DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
               else
                 self.starter_function.call(o, self)
               end
@@ -630,22 +628,21 @@ module BlackStack
         
             def finish(o)
               if self.finisher_function.nil?
-                o[self.field_end_time.to_sym] = now() if !self.field_end_time.nil?
-                o.save
+                o[self.field_end_time.to_sym] = Time.now() if !self.field_end_time.nil?
+                DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
               else
                 self.finisher_function.call(o, self)
               end
             end
             
             # relaunch records
-            def run_relaunch(worker)
+            def run_relaunch()
               # relaunch failed records
-              self.relaunching(worker, self.queue_size).each { |id|
-                o = DB[self.table.to_sym].where(self.field_primary_key.to_sym => id).first
+              self.relaunching.each { |o|
                 if self.relauncher_function.nil?
                   self.relaunch(o)
                 else
-                  self.relauncher_function.call(o, self)
+                  self.relauncher_function.call(o)
                 end
                 # release resources
                 DB.disconnect
@@ -662,16 +659,15 @@ module BlackStack
               # dispatching n pending records
               i = 0
               if n>0
-                self.selecting(worker, n).each { |id|
+                self.selecting(n).each { |o|
                   # count the # of dispatched
                   i += 1
                   # dispatch records
-                  o = DB[self.table.to_sym].where(self.field_primary_key.to_sym => id).first
                   o[self.field_id.to_sym] = worker.id
-                  o[self.field_time.to_sym] = now()
+                  o[self.field_time.to_sym] = Time.now()
                   o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
                   o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
-                  o.save
+                  DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
                   # release resources
                   DB.disconnect
                   GC.start        
