@@ -12,6 +12,8 @@ create table if not exists numbers (
 	odd_checking_end_time timestamp null
 );
 
+alter table numbers add column if not exists is_odd boolean null;
+
 insert into numbers (value) values (1) on conflict do nothing;
 insert into numbers (value) values (2) on conflict do nothing;
 insert into numbers (value) values (3) on conflict do nothing;

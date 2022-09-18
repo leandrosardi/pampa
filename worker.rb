@@ -65,7 +65,7 @@ begin
 
     # getting the worker object
     worker = BlackStack::Pampa.workers.select { |w| w.id == PARSER.value('id') }.first
-    raise "Worker #{PARSER.value('id')} not found." if worker.nil?
+    raise 'Worker '+PARSER.value('id')+' not found.' if worker.nil?
 
     # start the loop
     while true
@@ -77,8 +77,22 @@ begin
         begin
             BlackStack::Pampa.jobs.each { |job|
                 l.logs 'Processing job '+job.name+'... '
-                rows = job.occupied_slots(worker)
-                l.logf "#{rows.size} tasks in queue."
+                tasks = job.occupied_slots(worker)
+                l.logf tasks.size.to_s+' tasks in queue.'
+
+                tasks.each { |task|
+                    l.logs 'Flag task '+task[job.field_primary_key.to_sym].to_s+' started... '
+                    job.start(task)
+                    l.done
+
+                    l.logs 'Processing task '+task[job.field_primary_key.to_sym].to_s+'... '
+                    job.processing_function.call(task, l, job, worker)
+                    l.done
+
+                    l.logs 'Flag task '+task[job.field_primary_key.to_sym].to_s+' finished... '
+                    job.finish(task)
+                    l.done
+                }
             }
 
         rescue SignalException, SystemExit, Interrupt => e

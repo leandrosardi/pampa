@@ -116,14 +116,14 @@ module BlackStack
         end
 =end
 
-        # get attached and unassigned workers 
+        # get attached and unassigned workers. 
         # assign and unassign workers to jobs.
         #
         # Parameters:
         # - config: relative path of the configuration file. Example: '../config.rb'
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
-        def self.stretch(config_filename='./config.rb', worker_filename='./worker.rb')
+        def self.stretch()
           # validate: the connection string is not nil
           raise "The connection string is nil" if @@connection_string.nil?
           # validate: the connection string is not empty
@@ -213,7 +213,7 @@ module BlackStack
         # - config: relative path of the configuration file. Example: '../config.rb'
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
-        def self.dispatch(config_filename='./config.rb', worker_filename='./worker.rb')
+        def self.dispatch()
             # validate: the connection string is not nil
             raise "The connection string is nil" if @@connection_string.nil?
             # validate: the connection string is not empty

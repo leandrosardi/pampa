@@ -3,13 +3,13 @@ require_relative '../config.rb'
 
 while true
     # assign workers to each job
-    BlackStack::Pampa.stretch('../config.rb', '../worker.rb')
+    BlackStack::Pampa.stretch
 
     # dispatch tasks to each worker
-    #BlackStack::Pampa.restart('../config.rb', '../worker.rb')
+    #BlackStack::Pampa.restart
 
     # dispatch tasks to each worker
-    BlackStack::Pampa.dispatch('../config.rb', '../worker.rb')
+    BlackStack::Pampa.dispatch
 
     # sleep
     sleep(5)
