@@ -209,11 +209,21 @@ irb> w.start
 
 ## 5. Elastic Jobs Processing
 
+_(this feature is pending of development)_
+
 Define the maximum tasks tasks allowed.
 Define the minumum number of workers assigned for a job.
 Define the maximum number of workers assigned for a job.
 
-## 5. Customized Counting Pending Tasks: `:queue_slots_function`
+## 6. Customized Counting Pending Tasks: `:occupied_function`
+
+The `:occupied_function` function returns an array with the pending **tasks** in queue for a **worker**.
+
+The default function returnss all the **tasks** with `:field_id` equel to the name of the worker, and the `:field_start_time` empty.
+
+You can setup a custom version of this function.
+
+Example: You may want to sort 
 
 additional function to decide how many records are pending for processing
 it should returns an integer

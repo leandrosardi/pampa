@@ -63,18 +63,22 @@ begin
     require PARSER.value('config')
     l.done
 
+    # getting the worker object
+    worker = BlackStack::Pampa.workers.select { |w| w.id == PARSER.value('id') }.first
+    raise "Worker #{PARSER.value('id')} not found." if worker.nil?
+
     # start the loop
     while true
         # get the start loop time
         l.logs 'Starting loop... '
         start = Time.now()
-        l.done
+        l.done        
 
         begin
             BlackStack::Pampa.jobs.each { |job|
                 l.logs 'Processing job '+job.name+'... '
-                # check for pending tasks
-                l.done
+                rows = job.occupied_slots(worker)
+                l.logf "#{rows.size} tasks in queue."
             }
 
         rescue SignalException, SystemExit, Interrupt => e

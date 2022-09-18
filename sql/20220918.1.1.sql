@@ -1,10 +1,15 @@
+/*
+drop table numbers;
+select * from numbers;
+*/
+
 create table if not exists numbers (
 	value bigint not null primary key,
 	odd_checking_reservation_id varchar(500) null,
 	odd_checking_reservation_time timestamp null,
 	odd_checking_reservation_times int null,
-	odd_checking_reservation_start_time timestamp null,
-	odd_checking_reservation_end_time timestamp null
+	odd_checking_start_time timestamp null,
+	odd_checking_end_time timestamp null
 );
 
 insert into numbers (value) values (1) on conflict do nothing;

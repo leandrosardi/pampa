@@ -7,7 +7,6 @@ require 'simple_cloud_logging'
 module BlackStack
     module Pampa
         # arrays of workers, nodes, and jobs.
-        @@workers = []
         @@nodes = []
         @@jobs = []
         # logger configuration
@@ -63,6 +62,11 @@ module BlackStack
             @@nodes
         end
 
+        # return the array of all workers, beloning all nodes.
+        def self.workers()
+            @@nodes.map { |node| node.workers }.flatten
+        end
+
         # add a job to the cluster.
         def self.add_job(h)
             @@jobs << BlackStack::Pampa::Job.new(h)
@@ -82,7 +86,7 @@ module BlackStack
         # return the array of nodes.
         def self.jobs()
           @@jobs
-      end
+        end
 
 =begin
         # return a hash descriptor of the whole configuration of the cluster.
@@ -111,6 +115,36 @@ module BlackStack
             # TODO
         end
 =end
+
+        # iterate the workers.
+        # for each worker, iterate the job.
+        #
+        # Parameters:
+        # - config: relative path of the configuration file. Example: '../config.rb'
+        # - worker: relative path of the worker.rb file. Example: '../worker.rb'
+        # 
+        def self.dispatch(config_filename='./config.rb', worker_filename='./worker.rb')
+            # validate: the connection string is not nil
+            raise "The connection string is nil" if @@connection_string.nil?
+            # validate: the connection string is not empty
+            raise "The connection string is empty" if @@connection_string.empty?
+            # validate: the connection string is not blank
+            raise "The connection string is blank" if @@connection_string.strip.empty?
+            # getting logger
+            l = self.logger()
+            # iterate the workers
+            BlackStack::Pampa.workers.each { |worker|
+                l.logs("worker:#{worker.id}... ")
+                # iterate the jobs
+                BlackStack::Pampa.jobs.each { |job|
+                    l.logs("job:#{job.name}... ")
+                    
+                    l.done
+                }
+                l.done
+            } # @@nodes.each do |node|            
+        end
+
         # connect the nodes via ssh.
         # kill all Ruby processes except this one.
         # rename any existing folder ~/pampa to ~/pampa.<current timestamp>.
@@ -270,11 +304,7 @@ module BlackStack
                 self.max_workers = h[:max_workers]
                 self.workers = []
                 self.max_workers.times do |i|
-                    w = BlackStack::Pampa::Worker.new({:id => "#{self.name}.#{(i+1).to_s}", :node => self.to_hash})
-#puts
-#puts
-#puts "w.id: #{w.id}"
-                    self.workers << w
+                    self.workers << BlackStack::Pampa::Worker.new({:id => "#{self.name}.#{(i+1).to_s}", :node => self.to_hash})
                 end
             end # def self.create(h)
             # returh a hash descriptor of the node
