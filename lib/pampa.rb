@@ -116,6 +116,78 @@ module BlackStack
         end
 =end
 
+        # get attached and unassigned workers 
+        # assign and unassign workers to jobs.
+        #
+        # Parameters:
+        # - config: relative path of the configuration file. Example: '../config.rb'
+        # - worker: relative path of the worker.rb file. Example: '../worker.rb'
+        # 
+        def self.elastic(config_filename='./config.rb', worker_filename='./worker.rb')
+          # validate: the connection string is not nil
+          raise "The connection string is nil" if @@connection_string.nil?
+          # validate: the connection string is not empty
+          raise "The connection string is empty" if @@connection_string.empty?
+          # validate: the connection string is not blank
+          raise "The connection string is blank" if @@connection_string.strip.empty?
+          # getting logger
+          l = self.logger()
+          # get attached and unassigned workers 
+          l.logs "Getting attached and unassigned workers... "
+          workers = BlackStack::Pampa.workers.select { |worker| worker.attached && worker.assigned_job.nil? }
+          l.logf "done (#{workers.size.to_s})"
+          # get the job this worker is working with
+          BlackStack::Pampa.jobs.each { |job|
+            if workers.size == 0
+              l.logf "No more workers to assign."
+              break
+            end
+
+            l.logs("job:#{job.name}... ")
+              
+              l.logs("Gettting assigned workers... ") 
+              assigned = BlackStack::Pampa.workers.select { |worker| worker.attached && worker.assigned_job.to_s == job.name.to_s }
+              l.logf("done (#{assigned.size.to_s})")
+
+              l.logs("Getting total pending tasks... ")
+              pendings = job.selecting(job.max_pending_tasks)
+              l.logf("done (#{pendings.size.to_s})")
+
+              l.logs("Reached :max_pending_tasks (#{job.max_pending_tasks})?... ")
+              if pendings.size < job.max_pending_tasks
+                l.logf("no")
+
+                l.logs("Unassigning worker... ")
+                w = assigned.first
+                w.assigned_job = nil
+                l.done
+
+                l.logs("Adding worker from the list of unassigned... ")
+                workers << w
+                l.done
+              else
+                l.logf("yes")
+
+                l.logs("Reached :max_assigned_workers (#{job.max_assigned_workers})?... ")
+                if assigned.size >= job.max_assigned_workers
+                  l.logf("yes")
+                else
+                  l.logf("no")
+
+                  l.logs("Assigning worker... ")
+                  w = workers.first
+                  w.assigned_job = job.name.to_sym
+                  l.done
+
+                  l.logs("Removing worker from the list of unassigned... ")
+                  workers.delete(w)
+                  l.done
+                end
+              end
+            l.done
+          }
+        end
+
         # iterate the workers.
         # for each worker, iterate the job.
         #
@@ -135,13 +207,21 @@ module BlackStack
             # iterate the workers
             BlackStack::Pampa.workers.each { |worker|
                 l.logs("worker:#{worker.id}... ")
-                # iterate the jobs
-                BlackStack::Pampa.jobs.each { |job|
-                    l.logs("job:#{job.name}... ")
-                    
-                    l.done
-                }
-                l.done
+                if !worker.attached
+                  l.logf("detached")
+                else
+                  if worker.assigned_job.nil?
+                    l.logf("unassigned")
+                  else
+                    # get the job this worker is assigned to
+                    job = BlackStack::Pampa.jobs.select { |j| j.name.to_s == worker.assigned_job.to_s }.first
+                    if job.nil?
+                      l.logf("job #{job.name} not found")
+                    else                        
+                      l.done
+                    end
+                  end
+                end
             } # @@nodes.each do |node|            
         end
 
@@ -256,7 +336,7 @@ module BlackStack
         # stub worker class
         class Worker
             # name to identify uniquely the worker
-            attr_accessor :id
+            attr_accessor :id, :assigned_job, :attached
             # return an array with the errors found in the description of the job
             def self.descriptor_errors(h)
                 errors = []
@@ -268,12 +348,22 @@ module BlackStack
               errors = BlackStack::Pampa::Worker.descriptor_errors(h)
               raise "The worker descriptor is not valid: #{errors.uniq.join(".\n")}" if errors.length > 0        
               self.id = h[:id]
+              self.assigned_job = nil
+              self.attached = true
             end
             # return a hash descriptor of the worker
             def to_hash()
                 {
                     :id => self.id,
                 }
+            end
+            # attach worker to get dispatcher working with it
+            def attach()
+                self.attached = true
+            end
+            # detach worker to get dispatcher working with it
+            def detach()
+                self.attached = false
             end
         end
 
@@ -368,7 +458,10 @@ module BlackStack
             attr_accessor :finisher_function
             # Function to execute for each task.
             attr_accessor :processing_function
-            
+            # Elastic assignation/unassignation of workers
+            attr_accessor :max_pending_tasks
+            attr_accessor :max_assigned_workers
+
             # return a hash descriptor of the job
             def to_hash()
                 {
@@ -390,7 +483,9 @@ module BlackStack
                     :relauncher_function => self.relauncher_function.to_s,
                     :starter_function => self.starter_function.to_s,
                     :finisher_function => self.finisher_function.to_s,
-                    :processing_function => self.processing_function.to_s
+                    :processing_function => self.processing_function.to_s,
+                    :max_pending_tasks => self.max_pending_tasks,
+                    :max_assigned_workers => self.max_assigned_workers,
                 }
             end
 
@@ -422,6 +517,8 @@ module BlackStack
               self.relaunching_function = h[:relaunching_function]
               self.relauncher_function = h[:relauncher_function]
               self.processing_function = h[:processing_function]
+              self.max_pending_tasks = h[:max_pending_tasks]
+              self.max_assigned_workers = h[:max_assigned_workers]
             end
             
             # returns an array of tasks pending to be processed by the worker.
@@ -461,19 +558,19 @@ module BlackStack
         
             # choose the records to dispatch
             # returns an array of IDs
-            def selecting_dataset(worker, n)
+            def selecting_dataset(n)
               ds = DB[self.table.to_sym].select(self.field_primary_key.to_sym).where(self.field_id.to_sym => nil) 
               ds = ds.filter(self.field_end_time.to_sym => nil) if !self.field_end_time.nil?  
-              ds = ds.filter("#{self.field_times.to_s} IS NULL OR #{self.field_times.to_s} < #{self.max_try_times.to_s}") if !self.field_times.nil? 
+              ds = ds.filter(Sequel.function(:coalesce, self.field_times.to_sym, 0)=>[nil]+self.max_try_times.times.to_a) if !self.field_times.nil? 
               ds.limit(n)
             end # selecting_dataset
         
-            def selecting(worker, n)
+            def selecting(n)
               if self.selecting_function.nil?
-                return self.selecting_dataset(worker, n).map { |o| o[self.field_primary_key.to_sym] }
+                return self.selecting_dataset(n).map { |o| o[self.field_primary_key.to_sym] }
               else
                 # TODO: validar que retorna un array de strings
-                return self.selecting_function.call(worker, self, n)
+                return self.selecting_function.call(self, n)
               end
             end
         
