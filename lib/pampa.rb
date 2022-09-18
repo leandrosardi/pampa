@@ -58,6 +58,11 @@ module BlackStack
             end
         end # def self.add_nodes(a)
 
+        # return the array of nodes.
+        def self.nodes()
+            @@nodes
+        end
+
         # add a job to the cluster.
         def self.add_job(h)
             @@jobs << BlackStack::Pampa::Job.new(h)
@@ -73,6 +78,12 @@ module BlackStack
                 self.add_job(h)
             end
         end # def self.add_jobs(a)
+
+        # return the array of nodes.
+        def self.jobs()
+          @@jobs
+      end
+
 =begin
         # return a hash descriptor of the whole configuration of the cluster.
         def self.to_hash()
@@ -259,7 +270,11 @@ module BlackStack
                 self.max_workers = h[:max_workers]
                 self.workers = []
                 self.max_workers.times do |i|
-                    self.workers << BlackStack::Pampa::Worker.new({:id => i+1, :node => self.to_hash})
+                    w = BlackStack::Pampa::Worker.new({:id => "#{self.name}.#{(i+1).to_s}", :node => self.to_hash})
+#puts
+#puts
+#puts "w.id: #{w.id}"
+                    self.workers << w
                 end
             end # def self.create(h)
             # returh a hash descriptor of the node
@@ -294,7 +309,7 @@ module BlackStack
             # max number of times that a record can start to process & fail (:start_time field is not nil, 
             # but :end_time field is still nil after :max_job_duration_minutes)
             attr_accessor :max_try_times
-            # additional function to returns an array of objects pending to be processed by a worker.
+            # additional function to returns an array of tasks pending to be processed by a worker.
             # it should returns an array
             # keep it nil if you want to run the default function
             attr_accessor :occupied_function
@@ -328,7 +343,7 @@ module BlackStack
             def to_hash()
                 {
                     :name => self.name,
-                    :table => DB[table.to_sym],
+                    :table => self.table,
                     :field_primary_key => self.field_primary_key,
                     :field_id => self.field_id,
                     :field_time => self.field_time,
@@ -361,7 +376,7 @@ module BlackStack
               errors = BlackStack::Pampa::Job.descriptor_errors(h)
               raise "The job descriptor is not valid: #{errors.uniq.join(".\n")}" if errors.length > 0        
               self.name = h[:name]
-              DB[table.to_sym] = h[:table]
+              self.table = h[:table]
               self.field_primary_key = h[:field_primary_key]
               self.field_id = h[:field_id]
               self.field_time = h[:field_time]
@@ -379,12 +394,12 @@ module BlackStack
               self.processing_function = h[:processing_function]
             end
             
-            # returns an array of objects pending to be processed by the worker.
+            # returns an array of tasks pending to be processed by the worker.
             # it will select the records with :reservation_id == worker.id, and :start_time == nil
             def occupied_slots(worker)
               if self.occupied_function.nil?
-                return DB[table.to_sym].where(self.field_id.to_sym => worker.id, self.field_start_time.to_sym => nil).all if !self.field_start_time.nil?
-                return DB[table.to_sym].where(self.field_id.to_sym => worker.id).all if self.field_start_time.nil?
+                return DB[self.table.to_sym].where(self.field_id.to_sym => worker.id, self.field_start_time.to_sym => nil).all if !self.field_start_time.nil?
+                return DB[self.table.to_sym].where(self.field_id.to_sym => worker.id).all if self.field_start_time.nil?
               else
                 # TODO: validar que retorna un entero
                 return self.occupied_function.call(worker, self)
@@ -417,7 +432,7 @@ module BlackStack
             # choose the records to dispatch
             # returns an array of IDs
             def selecting_dataset(worker, n)
-              ds = DB[table.to_sym].select(self.field_primary_key.to_sym).where(self.field_id.to_sym => nil) 
+              ds = DB[self.table.to_sym].select(self.field_primary_key.to_sym).where(self.field_id.to_sym => nil) 
               ds = ds.filter(self.field_end_time.to_sym => nil) if !self.field_end_time.nil?  
               ds = ds.filter("#{self.field_times.to_s} IS NULL OR #{self.field_times.to_s} < #{self.max_try_times.to_s}") if !self.field_times.nil? 
               ds.limit(n)
@@ -435,7 +450,7 @@ module BlackStack
             # choose the records to retry
             # returns an array of IDs
             def relaunching_dataset(worker, n)
-              ds = DB[table.to_sym].select(self.field_primary_key.to_sym).where("#{self.field_time.to_s} < DATEADD(mi, -#{self.max_job_duration_minutes.to_i}, GETDATE())")
+              ds = DB[self.table.to_sym].select(self.field_primary_key.to_sym).where("#{self.field_time.to_s} < DATEADD(mi, -#{self.max_job_duration_minutes.to_i}, GETDATE())")
               ds = ds.filter("#{self.field_end_time.to_s} IS NULL") if !self.field_end_time.nil?  
               #ds = ds.filter("( #{self.field_times.to_s} IS NULL OR #{self.field_times.to_s} < #{self.max_try_times.to_s} ) ") if !self.field_times.nil?
               ds = ds.limit(n)
@@ -482,7 +497,7 @@ module BlackStack
             def run_relaunch(worker)
               # relaunch failed records
               self.relaunching(worker, self.queue_size).each { |id|
-                o = DB[table.to_sym].where(self.field_primary_key.to_sym => id).first
+                o = DB[self.table.to_sym].where(self.field_primary_key.to_sym => id).first
                 if self.relauncher_function.nil?
                   self.relaunch(o)
                 else
@@ -507,7 +522,7 @@ module BlackStack
                   # count the # of dispatched
                   i += 1
                   # dispatch records
-                  o = DB[table.to_sym].where(self.field_primary_key.to_sym => id).first
+                  o = DB[self.table.to_sym].where(self.field_primary_key.to_sym => id).first
                   o[self.field_id.to_sym] = worker.id
                   o[self.field_time.to_sym] = now()
                   o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?

@@ -35,13 +35,13 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
     }, {
         :name=>'id', 
         :mandatory=>true, 
-        :description=>'Write here a unique identifier integer for the worker.', 
-        :type=>BlackStack::SimpleCommandLineParser::INT,
+        :description=>'Write here a unique identifier for the worker.', 
+        :type=>BlackStack::SimpleCommandLineParser::STRING,
     }]
 )
 
 # creating logfile
-l = BlackStack::LocalLogger.new('worker.'+'%09d' % PARSER.value('id').to_s+'.log')
+l = BlackStack::LocalLogger.new('worker.'+PARSER.value('id').to_s+'.log')
   
 begin
     # log the paramers
@@ -51,7 +51,7 @@ begin
     # TODO: replace this hardocded array for method `PARSER.params`.
     # reference: https://github.com/leandrosardi/simple_command_line_parser/issues/7
     #['id','delay','debug','pampa','config'].each { |param| l.log param + ': ' + PARSER.value(param).to_s }
-    
+
     # require the pampa library
     l.logs 'Requiring pampa (debug='+(PARSER.value('debug') ? 'true' : 'false')+', pampa='+PARSER.value('pampa')+')... '
     require 'pampa' if !PARSER.value('debug')
@@ -59,14 +59,8 @@ begin
     l.done
 
     # requiore the config.rb file where the jobs are defined.
-    l.logs 'Requiring config (config='+PARSER.value('config')+')'
+    l.logs 'Requiring config (config='+PARSER.value('config')+')... '
     require PARSER.value('config')
-    l.done
-
-    # connect the database
-    l.logs 'Connecting to the database... '
-    s = BlackStack::Pampa.connection_string
-    DB = Sequel.connect(s)
     l.done
 
     # start the loop
@@ -77,8 +71,12 @@ begin
         l.done
 
         begin
-            # TODO: get the next task to process
-            # TODO: process the tasks
+            BlackStack::Pampa.jobs.each { |job|
+                l.logs 'Processing job '+job.name+'... '
+                # check for pending tasks
+                l.done
+            }
+
         rescue SignalException, SystemExit, Interrupt => e
             # note: this catches the CTRL+C signal.
             # note: this catches the `kill` command, ONLY if it has not the `-9` option.
