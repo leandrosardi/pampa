@@ -166,6 +166,7 @@ module BlackStack
                   workers << w
                   l.done
                 }
+                l.done
               else
                 l.logf("no")
 
