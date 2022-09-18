@@ -1,6 +1,8 @@
 require 'sequel'
 require 'blackstack-core'
 require 'blackstack-nodes'
+require 'simple_command_line_parser'
+require 'simple_cloud_logging'
 
 module BlackStack
     module Pampa

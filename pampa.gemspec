@@ -33,4 +33,5 @@ Find documentation here: https://github.com/leandrosardi/pampa
   s.add_runtime_dependency 'blackstack_core', '~> 1.2.3', '>= 1.2.3'
   s.add_runtime_dependency 'blackstack_nodes', '~> 1.2.10', '>= 1.2.10'
   s.add_runtime_dependency 'simple_command_line_parser', '~> 1.1.2', '>= 1.1.2'
+  s.add_runtime_dependency 'simple_cloud_logging', '~> 1.2.2', '>= 1.2.2'
 end

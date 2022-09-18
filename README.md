@@ -125,6 +125,12 @@ require 'sequel'
 BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
 ```
 
+**Pampa** uses [Sequel](https://sequel.jeremyevans.net/)'s methods for building SQL expressions. 
+
+Then, you can connect **Pampa** to any RDBMS. 
+
+The connection string above works with either [PostrgreSQL](https://www.postgresql.org) or [CockroachDB](https://www.cockroachlabs.com).
+
 ### 2.4. Setting Output Log File
 
 Add this code to your `config.rb` file:
@@ -147,66 +153,54 @@ irb> BlackStack::Pampa.deploy
 irb> BlackStack::Pampa.dispatch(:search_odd_numbers)
 ```
 
-## 3. Watching Cluster Status
+## 3. Watching the Status of a Worker
 
 ```ruby
 irb> require_relative './config.rb'
 irb> n = BlackStack::Pampa::nodes.first
 irb> w = n.workers.first
 irb> puts "Last log update: #{w.log_minutes_ago.to_s} mins. ago"
+```
+
+Here is [an example](./examples/watching.rb) of watching all the workers of the cluster.
+
+## 4. Watching the Queue of a Worker
+
+```ruby
+irb> require_relative './config.rb'
+irb> n = BlackStack::Pampa::nodes.first
+irb> w = n.workers.first
 irb> puts "Tasks in queue: #{w.pending_tasks(:search_odd_numbers).to_s}"
 ```
 
-Here is a script for watching the whole cluster:
+Here is [an example](./examples/watching.rb) of watching all the workers of the cluster.
+
+## 5. Suspending Workers and Clusters
 
 ```ruby
-l = BlackStack::Pampa.logger
-
-l.log 'Workers Status Report:'
-
-BlackStack::Pampa.nodes { |n|
-  l.logs "node: #{n.name}... "
-  begin
-    l.logs 'Connecting... '
-    n.connect
-    l.done
-
-    n.workers.each { |w|
-      l.logs "Worker #{w.id}... "
-      begin
-        l.logs 'Last log update: ' 
-        l.logf "#{w.log_minutes_ago.to_s} mins. ago"
-
-        l.logs 'Tasks in queue: '
-        l.logf w.pending_tasks(:search_odd_numbers).to_s
-
-      l.done
-      rescue => e
-        l.error e
-      end
-    }
-
-    l.logs 'Disconnect... '
-    n.disconnect
-    l.done
-
-  l.done
-  rescue => e
-    l.error e
-  end
-}
+irb> require_relative './config.rb'
+irb> n = BlackStack::Pampa::nodes.first
+irb> n.stop
 ```
 
-## 4. Watching Queues Status
+```ruby
+irb> n.start
+```
 
-**Pampa**
+```ruby
+irb> w = n.workers.first
+irb> w.stop
+```
+
+```ruby
+irb> w.start
+```
 
 ## 5. Elastic Jobs Processing
 
 Define the maximum tasks tasks allowed.
 Define the minumum number of workers assigned for a job.
 Define the maximum number of workers assigned for a job.
-
 
 ## 5. Customized Counting Pending Tasks: `:queue_slots_function`
 

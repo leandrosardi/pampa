@@ -1,5 +1,4 @@
 require_relative '../lib/pampa.rb'
-
-#puts BlackStack::Pampa.to_hash
+require_relative '../config.rb'
 
 BlackStack::Pampa.deploy
