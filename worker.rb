@@ -89,6 +89,10 @@ begin
                     job.processing_function.call(task, l, job, worker)
                     l.done
 
+                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' finished... '
+                    job.finish(task)
+                    l.done
+    
                 # note: this catches the CTRL+C signal.
                 # note: this catches the `kill` command, ONLY if it has not the `-9` option.
                 rescue SignalException, SystemExit, Interrupt => e
@@ -105,20 +109,8 @@ begin
                     job.finish(task, e)
                     l.done
 
-                    l.logf 'Error: '+e.to_console
-                
-                rescue 
-                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' failed with unknown error... '
-                    job.finish(task, e)
-                    l.done
-
-                    l.logf 'Unknown Error.'
-                
-                end
-        
-                l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' finished... '
-                job.finish(task)
-                l.done
+                    l.logf 'Error: '+e.to_console                
+                end        
             }
         }
 
