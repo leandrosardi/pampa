@@ -74,36 +74,53 @@ begin
         start = Time.now()
         l.done        
 
-        begin
-            BlackStack::Pampa.jobs.each { |job|
-                l.logs 'Processing job '+job.name+'... '
-                tasks = job.occupied_slots(worker)
-                l.logf tasks.size.to_s+' tasks in queue.'
+        BlackStack::Pampa.jobs.each { |job|
+            l.logs 'Processing job '+job.name+'... '
+            tasks = job.occupied_slots(worker)
+            l.logf tasks.size.to_s+' tasks in queue.'
 
-                tasks.each { |task|
-                    l.logs 'Flag task '+task[job.field_primary_key.to_sym].to_s+' started... '
-                    job.start(task)
-                    l.done
+            tasks.each { |task|
+                l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' started... '
+                job.start(task)
+                l.done
 
+                begin
                     l.logs 'Processing task '+task[job.field_primary_key.to_sym].to_s+'... '
                     job.processing_function.call(task, l, job, worker)
                     l.done
 
-                    l.logs 'Flag task '+task[job.field_primary_key.to_sym].to_s+' finished... '
-                    job.finish(task)
+                # note: this catches the CTRL+C signal.
+                # note: this catches the `kill` command, ONLY if it has not the `-9` option.
+                rescue SignalException, SystemExit, Interrupt => e
+                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' interrumpted... '
+                    job.finish(task, e)
                     l.done
-                }
-            }
+                    
+                    log.logf 'Bye!'
 
-        rescue SignalException, SystemExit, Interrupt => e
-            # note: this catches the CTRL+C signal.
-            # note: this catches the `kill` command, ONLY if it has not the `-9` option.
-            raise e
-        rescue => e
-            l.logf 'Error: '+e.to_console
-        rescue 
-            l.logf 'Unknown Error.'
-        end
+                    raise e
+
+                rescue => e
+                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' failed... '
+                    job.finish(task, e)
+                    l.done
+
+                    l.logf 'Error: '+e.to_console
+                
+                rescue 
+                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' failed with unknown error... '
+                    job.finish(task, e)
+                    l.done
+
+                    l.logf 'Unknown Error.'
+                
+                end
+        
+                l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' finished... '
+                job.finish(task)
+                l.done
+            }
+        }
 
         # get the end loop time
         l.logs 'Ending loop... '

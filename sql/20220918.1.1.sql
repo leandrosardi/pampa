@@ -12,7 +12,9 @@ create table if not exists numbers (
 	odd_checking_end_time timestamp null
 );
 
-alter table numbers add column if not exists is_odd boolean null;
+alter table numberss add column if not exists is_odd boolean null;
+alter table numbers add column if not exists field_success boolean null;
+alter table numbers add column if not exists field_error_description text null;
 
 insert into numbers (value) values (1) on conflict do nothing;
 insert into numbers (value) values (2) on conflict do nothing;

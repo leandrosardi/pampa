@@ -474,6 +474,8 @@ module BlackStack
             attr_accessor :field_times
             attr_accessor :field_start_time
             attr_accessor :field_end_time
+            attr_accessor :field_success
+            attr_accessor :field_error_description
             # max number of records assigned to a worker that have not started (:start_time field is nil)
             attr_accessor :queue_size 
             # max number of minutes that a job should take to process. if :end_time keep nil x minutes 
@@ -526,6 +528,8 @@ module BlackStack
                     :field_times => self.field_times,
                     :field_start_time => self.field_start_time,
                     :field_end_time => self.field_end_time,
+                    :field_success => self.field_success,
+                    :field_error_description => self.field_error_description,
                     :queue_size => self.queue_size,
                     :max_job_duration_minutes => self.max_job_duration_minutes,
                     :max_try_times => self.max_try_times,
@@ -561,6 +565,8 @@ module BlackStack
               self.field_times = h[:field_times]
               self.field_start_time = h[:field_start_time]
               self.field_end_time = h[:field_end_time]
+              self.field_success = h[:field_success]
+              self.field_error_description = h[:field_error_description]
               self.queue_size = h[:queue_size]
               self.max_job_duration_minutes = h[:max_job_duration_minutes]  
               self.max_try_times = h[:max_try_times]
@@ -672,9 +678,11 @@ module BlackStack
               end
             end
         
-            def finish(o)
+            def finish(o, e=nil)
               if self.finisher_function.nil?
                 o[self.field_end_time.to_sym] = Time.now() if !self.field_end_time.nil?
+                o[self.field_success.to_sym] = e.nil? ? true : false
+                o[self.field_error_description.to_sym] = e.to_console if !self.field_error_description.nil?
                 DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
               else
                 self.finisher_function.call(o, self)
