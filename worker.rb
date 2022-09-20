@@ -23,7 +23,7 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
     }, {
         :name=>'pampa', 
         :mandatory=>false,
-        :default=>'./config.rb', 
+        :default=>'./lib/pampa.rb', 
         :description=>'Ruby file to require where `debug` is activated.', 
         :type=>BlackStack::SimpleCommandLineParser::STRING,
     }, {

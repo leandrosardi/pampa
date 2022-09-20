@@ -682,7 +682,7 @@ module BlackStack
               if self.finisher_function.nil?
                 o[self.field_end_time.to_sym] = Time.now() if !self.field_end_time.nil?
                 o[self.field_success.to_sym] = e.nil? ? true : false
-                o[self.field_error_description.to_sym] = e.to_console if !self.field_error_description.nil?
+                o[self.field_error_description.to_sym] = e.to_console if !e.nil? 
                 DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
               else
                 self.finisher_function.call(o, self)

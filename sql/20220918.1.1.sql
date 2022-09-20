@@ -1,8 +1,3 @@
-/*
-drop table numbers;
-select * from numbers;
-*/
-
 create table if not exists numbers (
 	value bigint not null primary key,
 	odd_checking_reservation_id varchar(500) null,
@@ -12,9 +7,9 @@ create table if not exists numbers (
 	odd_checking_end_time timestamp null
 );
 
-alter table numberss add column if not exists is_odd boolean null;
-alter table numbers add column if not exists field_success boolean null;
-alter table numbers add column if not exists field_error_description text null;
+alter table numbers add column if not exists is_odd boolean null;
+alter table numbers add column if not exists odd_checking_success boolean null;
+alter table numbers add column if not exists odd_checking_error_description text null;
 
 insert into numbers (value) values (1) on conflict do nothing;
 insert into numbers (value) values (2) on conflict do nothing;
