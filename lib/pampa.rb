@@ -647,7 +647,7 @@ module BlackStack
                 AND #{self.field_end_time.to_s} IS NULL
                 LIMIT #{n}
               "
-              ds = DB[q].all
+              DB[q].all
             end
         
             # returns an array of failed tasks for restarting.
@@ -670,7 +670,7 @@ module BlackStack
         
             def start(o)
               if self.starter_function.nil?
-                o[self.field_start_time.to_sym] = Time.now() if !self.field_start_time.nil?
+                o[self.field_start_time.to_sym] = DB["SELECT CURRENT_TIMESTAMP() AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_times.to_sym] = o[self.field_times.to_sym].to_i + 1
                 DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
               else
@@ -680,7 +680,7 @@ module BlackStack
         
             def finish(o, e=nil)
               if self.finisher_function.nil?
-                o[self.field_end_time.to_sym] = Time.now() if !self.field_end_time.nil? && e.nil?
+                o[self.field_end_time.to_sym] = DB["SELECT CURRENT_TIMESTAMP() AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_success.to_sym] = e.nil?
                 o[self.field_error_description.to_sym] = e.to_console if !e.nil? 
                 DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
@@ -718,7 +718,7 @@ module BlackStack
                   i += 1
                   # dispatch records
                   o[self.field_id.to_sym] = worker.id
-                  o[self.field_time.to_sym] = Time.now()
+                  o[self.field_time.to_sym] = DB["SELECT CURRENT_TIMESTAMP() AS dt"].first[:dt] # IMPORTANT: use DB location to get current time.
                   o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
                   o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
                   DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)

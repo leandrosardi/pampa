@@ -11,7 +11,7 @@ while true
 
     # relaunch expired tasks
     l.logs 'Relaunching expired tasks... '
-    #BlackStack::Pampa.relaunch
+    BlackStack::Pampa.relaunch
     l.done
 
     # dispatch tasks to each worker
