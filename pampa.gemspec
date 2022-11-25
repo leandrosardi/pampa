@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pampa'
-  s.version     = '2.0.4'
-  s.date        = '2022-09-26'
+  s.version     = '2.0.5'
+  s.date        = '2022-11-25'
   s.summary     = "Ruby library for async & distributed computing, supporting dynamic reconfiguration, distribution of the computation jobs, error handling, job-retry and fault tolerance, and fast (non-direct) communication to ensure real-time capabilities."
   s.description = "Pampa is a Ruby library for async & distributing computing providing the following features:
 

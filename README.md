@@ -1,4 +1,6 @@
 
+![GitHub issues](https://img.shields.io/github/issues/leandrosardi/pampa) ![GitHub](https://img.shields.io/github/license/leandrosardi/pampa) ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/leandrosardi/pampa) ![GitHub last commit](https://img.shields.io/github/last-commit/leandrosardi/pampa)![Gem version](https://img.shields.io/gem/v/pampa)![Gem downloads](https://img.shields.io/gem/dt/pampa)
+
 # Pampa - Async & Distributed Data Processing
 
 **Pampa** is a Ruby library for async & distributing computing providing the following features:
