@@ -103,14 +103,17 @@ BlackStack::Pampa.add_job({
   # Define the tasks table: each record is a task.
   # The tasks table must have some specific fields for handling the tasks dispatching.
   :table => Numbers, # Note, that we are sending a class object here
-  :field_id => 'odd_checking_reservation_id',
-  :field_time => 'odd_checking_reservation_time', 
-  :field_times => 'odd_checking_reservation_times',
-  :field_start_time => 'odd_checking_start_time',
-  :field_end_time => 'odd_checking_end_time',
-  
+  :field_primary_key => :value,
+  :field_id => :odd_checking_reservation_id,
+  :field_time => :odd_checking_reservation_time, 
+  :field_times => :odd_checking_reservation_times,
+  :field_start_time => :odd_checking_start_time,
+  :field_end_time => :odd_checking_end_time,
+  :field_success => :odd_checking_success,
+  :field_error_description => :odd_checking_error_description,
+
   # Function to execute for each task.
-  :processing_function => Proc.new do |job, worker, *args|
+  :processing_function => Proc.new do |task, l, job, worker, *args|
     # TODO: Code Me!
   end
 })
