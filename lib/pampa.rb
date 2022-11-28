@@ -645,6 +645,7 @@ module BlackStack
                 AND #{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
                 AND #{self.field_id.to_s} IS NOT NULL 
                 AND #{self.field_end_time.to_s} IS NULL
+                AND COALESCE(#{self.field_times.to_s},0) < #{self.max_try_times.to_i}
                 LIMIT #{n}
               "
               DB[q].all
