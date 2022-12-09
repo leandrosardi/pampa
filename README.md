@@ -158,11 +158,18 @@ irb> BlackStack::Pampa.deploy
 irb> BlackStack::Pampa.dispatch(:search_odd_numbers)
 ```
 
-## 3. Running Workers Manually
+## 3. Stopping Workers Manually
 
 ```ruby
 irb> require_relative './config.rb'
 irb> BlackStack::Pampa.stop
+```
+
+## 3. Running Workers Manually
+
+```ruby
+irb> require_relative './config.rb'
+irb> BlackStack::Pampa.start
 ```
 
 ```bash

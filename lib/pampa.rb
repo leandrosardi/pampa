@@ -333,14 +333,7 @@ module BlackStack
                         # run the worker
                         # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                         l.logs "Running worker #{worker.id}... "
-                        s = "
-                          source /home/#{node.ssh_username}/.rvm/scripts/rvm >/dev/null 2>&1; 
-                          rvm install 3.1.2 >/dev/null 2>&1; 
-                          rvm --default use 3.1.2 >/dev/null 2>&1;
-                          cd /home/#{node.ssh_username}/pampa >/dev/null 2>&1; 
-                          export RUBYLIB=/home/#{node.ssh_username}/pampa >/dev/null 2>&1;
-                          nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb >/dev/null 2>&1 &
-                        " 
+                        s = "nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb >/dev/null 2>&1 &" 
                         node.exec(s, false)
                         l.done
                     }
@@ -350,6 +343,48 @@ module BlackStack
                     l.done
                 l.done
             } # @@nodes.each do |node|            
+        end
+
+        # connect the nodes via ssh.
+        # kill all Ruby processes except this one.
+        # run the number of workers specified in the configuration of the Pampa module.
+        # return an array with the IDs of the workers.
+        # 
+        def self.start()
+          # validate: the connection string is not nil
+          raise "The connection string is nil" if @@connection_string.nil?
+          # validate: the connection string is not empty
+          raise "The connection string is empty" if @@connection_string.empty?
+          # validate: the connection string is not blank
+          raise "The connection string is blank" if @@connection_string.strip.empty?
+          # getting logger
+          l = self.logger()
+          # iterate the nodes
+          @@nodes.each { |node|
+              l.logs("node:#{node.name()}... ")
+                  # connect the node
+                  l.logs("Connecting... ")
+                  node.connect()
+                  l.done
+                  # kill all ruby processes except this one
+                  l.logs("Killing all Ruby processes except this one... ")
+                  node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false)
+                  l.done
+                  # run the number of workers specified in the configuration of the Pampa module.
+                  node.workers.each { |worker|
+                      # run the worker
+                      # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
+                      l.logs "Running worker #{worker.id}... "
+                      s = "nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb >/dev/null 2>&1 &" 
+                      node.exec(s, false)
+                      l.done
+                  }
+                  # disconnect the node
+                  l.logs("Disconnecting... ")
+                  node.disconnect()
+                  l.done
+              l.done
+          } # @@nodes.each do |node|            
         end
 
         # connect the nodes via ssh.
