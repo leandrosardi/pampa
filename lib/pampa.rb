@@ -394,7 +394,6 @@ module BlackStack
                       # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                       l.logs "Running worker #{worker.id}... "
                       s = "nohup ruby #{worker_filename} id=#{worker.id} config=#{config_filename} >/dev/null 2>&1 &" 
-binding.pry
                       `#{s}`
                       l.done
                   }
