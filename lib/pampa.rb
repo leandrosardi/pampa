@@ -368,7 +368,7 @@ module BlackStack
         # run the number of workers specified in the configuration of the Pampa module.
         # return an array with the IDs of the workers.
         # 
-        def self.start()
+        def self.start(config_filename='~/pampa/config.rb', worker_filename='~/pampa/worker.rb')
           # validate: the connection string is not nil
           raise "The connection string is nil" if @@connection_string.nil?
           # validate: the connection string is not empty
@@ -393,7 +393,7 @@ module BlackStack
                       # run the worker
                       # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                       l.logs "Running worker #{worker.id}... "
-                      s = "nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb >/dev/null 2>&1 &" 
+                      s = "nohup ruby #{worker_filename} id=#{worker.id} config=#{config_filename} >/dev/null 2>&1 &" 
                       node.exec(s, false)
                       l.done
                   }
