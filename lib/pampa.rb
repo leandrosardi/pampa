@@ -326,25 +326,25 @@ module BlackStack
                     l.done
                     # kill all ruby processes except this one
                     l.logs("Killing all Ruby processes except this one... ")
-                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false)
+                    `ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;`
                     l.done
                     # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
                     l.logs("Renaming old folder... ")
-                    node.exec('mv ~/pampa ~/pampa.'+Time.now().to_i.to_s, false)
+                    `mv ~/pampa ~/pampa.#{Time.now().to_i.to_s}`
                     l.done
                     # create a new folder ~/code. - ignore if it already exists.
                     l.logs("Creating new folder... ")
-                    node.exec('mkdir ~/pampa', false)
+                    `mkdir ~/pampa`
                     l.done
                     # build the file ~/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
                     l.logs("Building config file... ")
                     s = "echo \"#{File.read(config_filename)}\" > ~/pampa/config.rb"                    
-                    node.exec(s, false)
+                    `#{s}`
                     l.done
                     # copy the file ~/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
                     l.logs("Copying worker file... ")
                     s = "echo \"#{File.read(worker_filename)}\" > ~/pampa/worker.rb"
-                    node.exec(s, false)
+                    `#{s}`
                     l.done
                     # run the number of workers specified in the configuration of the Pampa module.
                     node.workers.each { |worker|
@@ -352,7 +352,7 @@ module BlackStack
                         # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                         l.logs "Running worker #{worker.id}... "
                         s = "nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb >/dev/null 2>&1 &" 
-                        node.exec(s, false)
+                        `#{s}`
                         l.done
                     }
                     # disconnect the node
@@ -386,7 +386,7 @@ module BlackStack
                   l.done
                   # kill all ruby processes except this one
                   l.logs("Killing all Ruby processes except this one... ")
-                  node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false)
+                  `ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;`
                   l.done
                   # run the number of workers specified in the configuration of the Pampa module.
                   node.workers.each { |worker|
@@ -394,7 +394,8 @@ module BlackStack
                       # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                       l.logs "Running worker #{worker.id}... "
                       s = "nohup ruby #{worker_filename} id=#{worker.id} config=#{config_filename} >/dev/null 2>&1 &" 
-                      node.exec(s, false)
+binding.pry
+                      `#{s}`
                       l.done
                   }
                   # disconnect the node
@@ -429,7 +430,7 @@ module BlackStack
                     l.done
                     # kill all ruby processes except this one
                     l.logs("Killing all Ruby processes except this one... ")
-                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false)
+                    `ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;`
                     l.done
                     # disconnect the node
                     l.logs("Disconnecting... ")
