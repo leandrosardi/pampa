@@ -1,6 +1,7 @@
 require 'sequel'
 require 'blackstack-core'
 require 'blackstack-nodes'
+require 'blackstack-deployer'
 require 'simple_command_line_parser'
 require 'simple_cloud_logging'
 
@@ -26,6 +27,10 @@ module BlackStack
             @@logger
         end
 
+        def self.set_logger(l)
+          @@logger = l
+        end
+
         # return the log filename.
         def self.log_filename()
             @@log_filename
@@ -44,6 +49,8 @@ module BlackStack
         # add a node to the cluster.
         def self.add_node(h)
             @@nodes << BlackStack::Pampa::Node.new(h)
+            # add to deployer too, in order to run deployment.
+            BlackStack::Deployer.add_nodes(h)
         end # def self.add_node(h)
 
         # add an array of nodes to the cluster.
