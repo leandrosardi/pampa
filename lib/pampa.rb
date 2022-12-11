@@ -515,7 +515,7 @@ module BlackStack
         # stub worker class
         class Worker
             # name to identify uniquely the worker
-            attr_accessor :id, :assigned_job, :attached
+            attr_accessor :id, :assigned_job, :attached, :node
             # return an array with the errors found in the description of the job
             def self.descriptor_errors(h)
                 errors = []
@@ -543,6 +543,10 @@ module BlackStack
             # detach worker to get dispatcher working with it
             def detach()
                 self.attached = false
+            end
+            # get the latest n lines of the log of this worker
+            def tail(n=10)
+              self.node.tail("#{BlackStack::Pampa.working_directory}/worker.#{self.id}.log", n)
             end
         end
 
@@ -573,7 +577,9 @@ module BlackStack
                 self.max_workers = h[:max_workers]
                 self.workers = []
                 self.max_workers.times do |i|
-                    self.workers << BlackStack::Pampa::Worker.new({:id => "#{self.name}.#{(i+1).to_s}", :node => self.to_hash})
+                    new_worker = BlackStack::Pampa::Worker.new({:id => "#{self.name}.#{(i+1).to_s}", :node => self.to_hash})
+                    new_worker.node = self
+                    self.workers << new_worker
                 end
             end # def self.create(h)
             # returh a hash descriptor of the node
@@ -862,6 +868,43 @@ module BlackStack
               #      
               return i
             end
+
+            # reporting method: idle
+            def idle(max_tasks_to_show=25)
+                j = self
+                ret = j.selecting(max_tasks_to_show).size
+                ret = ret >= max_tasks_to_show ? "#{ret.to_label}+" : ret.to_label
+                ret
+            end # def idle
+
+            # reporting method: running
+            def running(max_tasks_to_show=25)
+                j = self
+                ret = 0
+                BlackStack::Pampa::nodes.each { |n|
+                    n.workers.each { |w|
+                        ret += j.occupied_slots(w).size
+                        break if ret>=max_tasks_to_show
+                    }
+                }
+                ret = ret >= max_tasks_to_show ? "#{max_tasks_to_show}+" : ret.to_label
+                ret
+            end # def idle
+
+            def failed(max_tasks_to_show=25)
+                j = self
+                q = "
+                    SELECT * 
+                    FROM #{j.table.to_s} 
+                    WHERE #{j.field_end_time.to_s} IS NULL
+                    AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
+                    LIMIT #{max_tasks_to_show}
+                "
+                ret = DB[q].all.size
+                ret = ret >= max_tasks_to_show ? "#{ret.to_label}+" : ret.to_label
+                ret
+            end # def idle
+
         end # class Job
     end # module Pampa
 end # module BlackStack
