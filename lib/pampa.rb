@@ -591,6 +591,8 @@ module BlackStack
             # stretch assignation/unassignation of workers
             attr_accessor :max_pending_tasks
             attr_accessor :max_assigned_workers
+            # tags in order to choose on which nodes the job will be executed
+            attr_accessor :tags
 
             # return a hash descriptor of the job
             def to_hash()
@@ -618,6 +620,7 @@ module BlackStack
                     :processing_function => self.processing_function.to_s,
                     :max_pending_tasks => self.max_pending_tasks,
                     :max_assigned_workers => self.max_assigned_workers,
+                    :tags => self.tags
                 }
             end
 
@@ -653,6 +656,7 @@ module BlackStack
               self.processing_function = h[:processing_function]
               self.max_pending_tasks = h[:max_pending_tasks]
               self.max_assigned_workers = h[:max_assigned_workers]
+              self.tags = h[:tags].nil? ? [] : ( h[:tags].is_a?(Array) ? h[:tags] : [h[:tags].to_s] )
             end
             
             # returns an array of tasks pending to be processed by the worker.
