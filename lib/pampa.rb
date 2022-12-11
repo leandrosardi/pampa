@@ -326,25 +326,25 @@ module BlackStack
                     l.done
                     # kill all ruby processes except this one
                     l.logs("Killing all Ruby processes except this one... ")
-                    `ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;`
+                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false);
                     l.done
                     # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
                     l.logs("Renaming old folder... ")
-                    `mv ~/pampa ~/pampa.#{Time.now().to_i.to_s}`
+                    node.exec("mv ~/pampa ~/pampa.#{Time.now().to_i.to_s}", false);
                     l.done
                     # create a new folder ~/code. - ignore if it already exists.
                     l.logs("Creating new folder... ")
-                    `mkdir ~/pampa`
+                    node.exec("mkdir ~/pampa", false);
                     l.done
                     # build the file ~/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
                     l.logs("Building config file... ")
                     s = "echo \"#{File.read(config_filename)}\" > ~/pampa/config.rb"                    
-                    `#{s}`
+                    node.exec("#{s}", false);
                     l.done
                     # copy the file ~/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
                     l.logs("Copying worker file... ")
                     s = "echo \"#{File.read(worker_filename)}\" > ~/pampa/worker.rb"
-                    `#{s}`
+                    node.exec("#{s}", false);
                     l.done
                     # run the number of workers specified in the configuration of the Pampa module.
                     node.workers.each { |worker|
@@ -352,7 +352,7 @@ module BlackStack
                         # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                         l.logs "Running worker #{worker.id}... "
                         s = "nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb >/dev/null 2>&1 &" 
-                        `#{s}`
+                        node.exec("#{s}", false);
                         l.done
                     }
                     # disconnect the node
@@ -386,15 +386,16 @@ module BlackStack
                   l.done
                   # kill all ruby processes except this one
                   l.logs("Killing all Ruby processes except this one... ")
-                  `ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;`
+                  node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t killl;", false);
                   l.done
                   # run the number of workers specified in the configuration of the Pampa module.
                   node.workers.each { |worker|
                       # run the worker
                       # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
-                      l.logs "Running worker #{worker.id}... "
-                      s = "nohup ruby #{worker_filename} id=#{worker.id} config=#{config_filename} >/dev/null 2>&1 &" 
-                      `#{s}`
+                      # run a bash command that sources the .profile file and runs the ruby script in the background, returning immediatelly.
+                      #s = "source $HOME/.profile; nohup ruby #{worker_filename} id=#{worker.id} config=#{config_filename} >/dev/null 2>&1 &"                      
+                      s = "nohup sh $HOME/code/mysaas/worker.sh >/dev/null 2>&1 &"
+                      node.exec(s, false);
                       l.done
                   }
                   # disconnect the node
@@ -429,7 +430,7 @@ module BlackStack
                     l.done
                     # kill all ruby processes except this one
                     l.logs("Killing all Ruby processes except this one... ")
-                    `ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;`
+                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false);
                     l.done
                     # disconnect the node
                     l.logs("Disconnecting... ")
@@ -438,6 +439,27 @@ module BlackStack
                 l.done
             } # @@nodes.each do |node|            
         end
+
+        # get the node by `node_name`
+        # connect the nodes via ssh.
+        # get how many minutes the worker wrote the log file
+        # close the connection
+        def self.log_minutes_ago(node_name, worker_id)
+            # get the node
+            n = self.nodes.select { |n| n.name == node_name }.first
+            return nil if !n
+            # connect the node
+            n.connect()
+            # get the time of the last time the worker wrote the log file
+            s = n.exec("cat /home/leandro/code/mysaas/cli/worker.#{worker_id}.log | tail -n 1 | cut -b1-19", false).to_s.strip
+            # run bash command to get the difference in minutes beteen now and the last time the worker wrote the log file
+            s = n.exec("echo \"$(($(date +%s) - $(date -d '#{s}' +%s))) / 60\" | bc", false).to_s.strip
+            # disconnect the node
+            n.disconnect
+            # return the number of minutes
+            s
+        end # log_minutes_ago
+
 
         # stub worker class
         class Worker
