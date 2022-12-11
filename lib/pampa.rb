@@ -870,6 +870,8 @@ module BlackStack
             end
 
             # reporting method: idle
+            # reutrn the number of idle tasks.
+            # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
             def idle(max_tasks_to_show=25)
                 j = self
                 ret = j.selecting(max_tasks_to_show).size
@@ -878,6 +880,8 @@ module BlackStack
             end # def idle
 
             # reporting method: running
+            # return the number of running tasks.
+            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
             def running(max_tasks_to_show=25)
                 j = self
                 ret = 0
@@ -891,13 +895,17 @@ module BlackStack
                 ret
             end # def idle
 
+            # reporting method: running
+            # return the number of running tasks.
+            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
             def failed(max_tasks_to_show=25)
                 j = self
                 q = "
                     SELECT * 
                     FROM #{j.table.to_s} 
-                    WHERE #{j.field_end_time.to_s} IS NULL
-                    AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
+                    WHERE COALESCE(#{j.field_success.to_s},true)=false
+                    --AND #{j.field_end_time.to_s} IS NULL
+                    --AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
                     LIMIT #{max_tasks_to_show}
                 "
                 ret = DB[q].all.size
@@ -905,6 +913,21 @@ module BlackStack
                 ret
             end # def idle
 
+            # reporting method: error_descriptions
+            # return an array of hashes { :id, :error_description } with the tasks that have an the success flag in false, error description.
+            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show` errors.
+            def error_descriptions(max_tasks_to_show=25)
+                j = self
+                q = "
+                    SELECT #{j.field_primary_key.to_s} as id, #{j.field_error_description.to_s} as description 
+                    FROM #{j.table.to_s} 
+                    WHERE COALESCE(#{j.field_success.to_s},true)=false
+                    --AND #{j.field_end_time.to_s} IS NULL
+                    --AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
+                    LIMIT #{max_tasks_to_show}
+                "
+                DB[q].all
+            end
         end # class Job
     end # module Pampa
 end # module BlackStack
