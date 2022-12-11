@@ -9,6 +9,11 @@ module BlackStack
     module Pampa
         # activate this flag if you want to add pampa nodes to blackstack-deployer.
         @@integrate_with_blackstack_deployer = false 
+        # setup custom locations for config and worker files.
+        @@config_filename = "config.rb"
+        @@worker_filename = "worker.rb"
+        # setu the directory where the worker.rb file will be lauched, and the log files will be stored.
+        @@working_directory = "$HOME/pampa"
         # arrays of workers, nodes, and jobs.
         @@nodes = []
         @@jobs = []
@@ -17,7 +22,43 @@ module BlackStack
         @@logger = BlackStack::DummyLogger.new(nil)
         # Connection string to the database. Example: mysql2://user:password@localhost:3306/database
         @@connection_string = nil
-        
+
+        # @@integrate_with_blackstack_deployer
+        def self.integrate_with_blackstack_deployer()
+            @@integrate_with_blackstack_deployer
+        end
+
+        def self.set_integrate_with_blackstack_deployer(b)
+            @@integrate_with_blackstack_deployer = b
+        end
+
+        # @@config_filename
+        def self.config_filename()
+            @@config_filename
+        end
+
+        def self.set_config_filename(s)
+          @@config_filename = s
+        end
+
+        # @@worker_filename
+        def self.worker_filename()
+          @@worker_filename
+        end
+
+        def self.set_worker_filename(s)
+          @@worker_filename = s
+        end
+
+        ## @@working_directory
+        def self.working_directory()
+          @@working_directory
+        end
+
+        def self.set_working_directory(s)
+          @@working_directory = s
+        end
+
         # define a filename for the log file.
         def self.set_log_filename(s)
             @@log_filename = s
@@ -31,15 +72,6 @@ module BlackStack
 
         def self.set_logger(l)
           @@logger = l
-        end
-
-        # @@integrate_with_blackstack_deployer
-        def self.integrate_with_blackstack_deployer()
-            @@integrate_with_blackstack_deployer
-        end
-
-        def self.set_integrate_with_blackstack_deployer(b)
-            @@integrate_with_blackstack_deployer = b
         end
 
         # return the log filename.
@@ -297,10 +329,10 @@ module BlackStack
 
         # connect the nodes via ssh.
         # kill all Ruby processes except this one.
-        # rename any existing folder ~/pampa to ~/pampa.<current timestamp>.
-        # create a new folder ~/pampa.
-        # build the file ~/pampa/config.rb in the remote node.
-        # copy the file ~/pampa/worker.rb to the remote node.
+        # rename any existing folder $HOME/pampa to $HOME/pampa.<current timestamp>.
+        # create a new folder $HOME/pampa.
+        # build the file $HOME/pampa/config.rb in the remote node.
+        # copy the file $HOME/pampa/worker.rb to the remote node.
         # run the number of workers specified in the configuration of the Pampa module.
         # return an array with the IDs of the workers.
         #
@@ -308,7 +340,7 @@ module BlackStack
         # - config: relative path of the configuration file. Example: '../config.rb'
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
-        def self.deploy(config_filename='./config.rb', worker_filename='./worker.rb')
+        def self.deploy()
             # validate: the connection string is not nil
             raise "The connection string is nil" if @@connection_string.nil?
             # validate: the connection string is not empty
@@ -330,20 +362,20 @@ module BlackStack
                     l.done
                     # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
                     l.logs("Renaming old folder... ")
-                    node.exec("mv ~/pampa ~/pampa.#{Time.now().to_i.to_s}", false);
+                    node.exec("mv #{BlackStack::Pampa.working_directory} #{BlackStack::Pampa.working_directory}.#{Time.now().to_i.to_s}", false);
                     l.done
                     # create a new folder ~/code. - ignore if it already exists.
                     l.logs("Creating new folder... ")
-                    node.exec("mkdir ~/pampa", false);
+                    node.exec("mkdir #{BlackStack::Pampa.working_directory}", false);
                     l.done
-                    # build the file ~/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
+                    # build the file $HOME/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
                     l.logs("Building config file... ")
-                    s = "echo \"#{File.read(config_filename)}\" > ~/pampa/config.rb"                    
+                    s = "echo \"#{File.read(config_filename)}\" > #{BlackStack::Pampa.working_directory}/#{BlackStack::Pampa.config_filename}"                    
                     node.exec("#{s}", false);
                     l.done
-                    # copy the file ~/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
+                    # copy the file $HOME/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
                     l.logs("Copying worker file... ")
-                    s = "echo \"#{File.read(worker_filename)}\" > ~/pampa/worker.rb"
+                    s = "echo \"#{File.read(worker_filename)}\" > #{BlackStack::Pampa.working_directory}/#{BlackStack::Pampa.worker_filename}"
                     node.exec("#{s}", false);
                     l.done
                     # run the number of workers specified in the configuration of the Pampa module.
@@ -351,7 +383,7 @@ module BlackStack
                         # run the worker
                         # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                         l.logs "Running worker #{worker.id}... "
-                        s = "nohup ruby worker.rb id=#{worker.id} config=~/pampa/config.rb >/dev/null 2>&1 &" 
+                        s = "nohup ruby #{BlackStack::Pampa.worker_filename} id=#{worker.id} config=#{BlackStack::Pampa.working_directory}/#{BlackStack::Pampa.config_filename} >/dev/null 2>&1 &" 
                         node.exec("#{s}", false);
                         l.done
                     }
@@ -368,7 +400,7 @@ module BlackStack
         # run the number of workers specified in the configuration of the Pampa module.
         # return an array with the IDs of the workers.
         # 
-        def self.start(config_filename='~/pampa/config.rb', worker_filename='~/pampa/worker.rb')
+        def self.start()
           # validate: the connection string is not nil
           raise "The connection string is nil" if @@connection_string.nil?
           # validate: the connection string is not empty
@@ -386,16 +418,23 @@ module BlackStack
                   l.done
                   # kill all ruby processes except this one
                   l.logs("Killing all Ruby processes except this one... ")
-                  node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t killl;", false);
+                  node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", true);
                   l.done
                   # run the number of workers specified in the configuration of the Pampa module.
                   node.workers.each { |worker|
                       # run the worker
                       # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                       # run a bash command that sources the .profile file and runs the ruby script in the background, returning immediatelly.
-                      #s = "source $HOME/.profile; nohup ruby #{worker_filename} id=#{worker.id} config=#{config_filename} >/dev/null 2>&1 &"                      
-                      s = "nohup sh $HOME/code/mysaas/worker.sh >/dev/null 2>&1 &"
+
+                      l.logs "Running worker #{worker.id}... "
+
+                      # write bash command to initialize bash file
+                      s = "echo \"source $HOME/.profile; cd #{BlackStack::Pampa.working_directory}; nohup ruby #{worker_filename} id=#{worker.id} config=#{self.config_filename} >/dev/null 2>&1 &\" > #{BlackStack::Pampa.working_directory}/worker.sh"
                       node.exec(s, false);
+                    
+                      s = "nohup bash #{BlackStack::Pampa.working_directory}/worker.sh >/dev/null 2>&1 &"
+                      node.exec(s, false);
+
                       l.done
                   }
                   # disconnect the node
@@ -412,7 +451,7 @@ module BlackStack
         # Parameters:
         # - config: relative path of the configuration file. Example: '../config.rb'
         # 
-        def self.stop(config_filename='./config.rb')
+        def self.stop()
             # validate: the connection string is not nil
             raise "The connection string is nil" if @@connection_string.nil?
             # validate: the connection string is not empty
@@ -451,7 +490,7 @@ module BlackStack
             # connect the node
             n.connect()
             # get the time of the last time the worker wrote the log file
-            s = n.exec("cat /home/leandro/code/mysaas/cli/worker.#{worker_id}.log | tail -n 1 | cut -b1-19", false).to_s.strip
+            s = n.exec("cat #{BlackStack::Pampa.working_directory}/worker.#{worker_id}.log | tail -n 1 | cut -b1-19", false).to_s.strip
             # run bash command to get the difference in minutes beteen now and the last time the worker wrote the log file
             s = n.exec("echo \"$(($(date +%s) - $(date -d '#{s}' +%s))) / 60\" | bc", false).to_s.strip
             # disconnect the node
@@ -460,6 +499,18 @@ module BlackStack
             s
         end # log_minutes_ago
 
+        # get the node usage of CPU, RAM, DISK, and NETWORK
+        # return a hash with the usage of CPU, RAM, DISK, and NETWORK
+        #
+        # sudo apt install sysstat
+        #
+        def self.node_usage(node_name)
+            ret = {}
+            # get the node
+            n = self.nodes.select { |n| n.name == node_name }.first
+            return nil if !n
+            n.usage
+        end # node_usage
 
         # stub worker class
         class Worker
