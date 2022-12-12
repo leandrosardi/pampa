@@ -358,7 +358,7 @@ module BlackStack
                     l.done
                     # kill all ruby processes except this one
                     l.logs("Killing all Ruby processes except this one... ")
-                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false);
+                    node.kill_workers()
                     l.done
                     # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
                     l.logs("Renaming old folder... ")
@@ -383,8 +383,23 @@ module BlackStack
                         # run the worker
                         # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
                         l.logs "Running worker #{worker.id}... "
-                        s = "nohup ruby #{BlackStack::Pampa.worker_filename} id=#{worker.id} config=#{BlackStack::Pampa.working_directory}/#{BlackStack::Pampa.config_filename} >/dev/null 2>&1 &" 
-                        node.exec("#{s}", false);
+
+                        # write bash command to initialize bash file
+                        s = "echo \"
+                          export RUBYLIB=$HOME/code/mysaas;
+                          source $HOME/.profile; 
+                          source /usr/local/rvm/scripts/rvm;
+                          cd ~/code/mysaas; rvm install 3.1.2;
+                          rvm --default use 3.1.2;
+                          cd #{BlackStack::Pampa.working_directory}; 
+                          nohup ruby #{worker_filename} id=#{worker.id} config=#{self.config_filename} >/dev/null 2>&1 &
+                        \" > #{BlackStack::Pampa.working_directory}/#{worker.id}.sh"
+                        node.exec(s, false);
+
+                        #s = "nohup bash #{BlackStack::Pampa.working_directory}/worker.sh >/dev/null 2>&1 &"
+                        s = "bash #{BlackStack::Pampa.working_directory}/#{worker.id}.sh"
+                        node.exec(s, false);
+
                         l.done
                     }
                     # disconnect the node
@@ -418,7 +433,7 @@ module BlackStack
                   l.done
                   # kill all ruby processes except this one
                   l.logs("Killing all Ruby processes except this one... ")
-                  node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", true);
+                  node.kill_workers()
                   l.done
                   # run the number of workers specified in the configuration of the Pampa module.
                   node.workers.each { |worker|
@@ -429,10 +444,18 @@ module BlackStack
                       l.logs "Running worker #{worker.id}... "
 
                       # write bash command to initialize bash file
-                      s = "echo \"source $HOME/.profile; cd #{BlackStack::Pampa.working_directory}; nohup ruby #{worker_filename} id=#{worker.id} config=#{self.config_filename} >/dev/null 2>&1 &\" > #{BlackStack::Pampa.working_directory}/worker.sh"
+                      s = "echo \"
+                        export RUBYLIB=$HOME/code/mysaas;
+                        source $HOME/.profile; 
+                        source /usr/local/rvm/scripts/rvm;
+                        cd ~/code/mysaas; rvm install 3.1.2;
+                        rvm --default use 3.1.2;
+                        cd #{BlackStack::Pampa.working_directory}; 
+                        nohup ruby #{worker_filename} id=#{worker.id} config=#{self.config_filename} >/dev/null 2>&1 &
+                      \" > #{BlackStack::Pampa.working_directory}/#{worker.id}.sh"
+#binding.pry
                       node.exec(s, false);
-                    
-                      s = "nohup bash #{BlackStack::Pampa.working_directory}/worker.sh >/dev/null 2>&1 &"
+                      s = "nohup bash #{BlackStack::Pampa.working_directory}/#{worker.id}.sh >/dev/null 2>&1 &"
                       node.exec(s, false);
 
                       l.done
@@ -469,7 +492,7 @@ module BlackStack
                     l.done
                     # kill all ruby processes except this one
                     l.logs("Killing all Ruby processes except this one... ")
-                    node.exec("ps ax | grep ruby | grep -v grep | grep -v #{Process.pid} | cut -b3-7 | xargs -t kill;", false);
+                    node.kill_workers()
                     l.done
                     # disconnect the node
                     l.logs("Disconnecting... ")
@@ -490,7 +513,8 @@ module BlackStack
             # connect the node
             n.connect()
             # get the time of the last time the worker wrote the log file
-            s = n.exec("cat #{BlackStack::Pampa.working_directory}/worker.#{worker_id}.log | tail -n 1 | cut -b1-19", false).to_s.strip
+            code = "cat #{BlackStack::Pampa.working_directory}/worker.#{worker_id}.log | tail -n 1 | cut -b1-19"
+            s = n.exec(code, false).to_s.strip
             # run bash command to get the difference in minutes beteen now and the last time the worker wrote the log file
             s = n.exec("echo \"$(($(date +%s) - $(date -d '#{s}' +%s))) / 60\" | bc", false).to_s.strip
             # disconnect the node
@@ -591,6 +615,15 @@ module BlackStack
                     ret[:workers] << worker.to_hash
                 end
                 ret
+            end
+            # kill all workers
+            def kill_workers()
+                self.workers.each do |worker|
+                    self.kill_worker(worker.id)
+                end
+            end
+            def kill_worker(worker_id)
+                self.exec("kill -9 $(ps -ef | grep \"ruby worker.rb id=#{worker_id}\" | grep -v grep | awk '{print $2}')", false)
             end
         end # class Node
 
