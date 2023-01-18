@@ -23,6 +23,11 @@ module BlackStack
         # Connection string to the database. Example: mysql2://user:password@localhost:3306/database
         @@connection_string = nil
 
+        def self.now()
+          tz = 'America/Argentina/Buenos_Aires' #DB["SELECT current_setting('TIMEZONE') AS tz"].first[:tz]
+          DB["SELECT current_timestamp() at TIME ZONE '#{tz}' AS now"].first[:now]
+        end
+
         # @@integrate_with_blackstack_deployer
         def self.integrate_with_blackstack_deployer()
             @@integrate_with_blackstack_deployer
@@ -138,34 +143,6 @@ module BlackStack
           @@jobs
         end
 
-=begin
-        # return a hash descriptor of the whole configuration of the cluster.
-        def self.to_hash()
-            ret = {
-                :log_filename => self.log_filename,
-                :connection_string => self.connection_string,
-            }
-            #ret[:workers] = []
-            #@@workers.each do |w|
-            #    ret[:workers] << w.to_hash
-            #end
-            ret[:nodes] = []
-            @@nodes.each do |n|
-                ret[:nodes] << n.to_hash
-            end
-            ret[:jobs] = []
-            @@jobs.each do |j|
-                ret[:jobs] << j.to_hash
-            end
-            ret
-        end # def self.to_hash()
-
-        # setup from a whole hash descriptor
-        def self.initialize(h)
-            # TODO
-        end
-=end
-
         # get attached and unassigned workers. 
         # assign and unassign workers to jobs.
         #
@@ -199,6 +176,7 @@ module BlackStack
               l.logf("done (#{assigned.size.to_s})")
 
               l.logs("Getting total pending tasks... ")
+
               pendings = job.selecting(job.max_pending_tasks)
               l.logf("done (#{pendings.size.to_s})")
 
@@ -771,14 +749,11 @@ module BlackStack
         
             # returns an array of failed tasks for restarting.
             def relaunching_dataset(n)
-              #ds = DB[self.table.to_sym].where("#{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes'")
-              #ds = ds.filter("#{self.field_end_time.to_s} IS NULL") if !self.field_end_time.nil?  
-              #ds.limit(n).all
               q = "
                 SELECT * 
                 FROM #{self.table.to_s} 
                 WHERE #{self.field_time.to_s} IS NOT NULL 
-                AND #{self.field_time.to_s} < CURRENT_TIMESTAMP() - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
+                AND #{self.field_time.to_s} < CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
                 AND #{self.field_id.to_s} IS NOT NULL 
                 AND #{self.field_end_time.to_s} IS NULL
                 AND COALESCE(#{self.field_times.to_s},0) < #{self.max_try_times.to_i}
@@ -802,14 +777,14 @@ module BlackStack
               o[self.field_time.to_sym] = nil
               o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
               o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
-              DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
+              o.save
             end
         
             def start(o)
               if self.starter_function.nil?
-                o[self.field_start_time.to_sym] = DB["SELECT CURRENT_TIMESTAMP() AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
+                o[self.field_start_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_times.to_sym] = o[self.field_times.to_sym].to_i + 1
-                DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
+                o.save
               else
                 self.starter_function.call(o, self)
               end
@@ -817,10 +792,10 @@ module BlackStack
         
             def finish(o, e=nil)
               if self.finisher_function.nil?
-                o[self.field_end_time.to_sym] = DB["SELECT CURRENT_TIMESTAMP() AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
+                o[self.field_end_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_success.to_sym] = e.nil?
                 o[self.field_error_description.to_sym] = e.to_console if !e.nil? 
-                DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
+                o.save
               else
                 self.finisher_function.call(o, e, self)
               end
@@ -853,12 +828,12 @@ module BlackStack
                 self.selecting(n).each { |o|
                   # count the # of dispatched
                   i += 1
-                  # dispatch records
+                  # dispatch 
                   o[self.field_id.to_sym] = worker.id
-                  o[self.field_time.to_sym] = DB["SELECT CURRENT_TIMESTAMP() AS dt"].first[:dt] # IMPORTANT: use DB location to get current time.
+                  o[self.field_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] # IMPORTANT: use DB location to get current time.
                   o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
                   o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
-                  DB[self.table.to_sym].where(self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]).update(o)
+                  o.save
                   # release resources
                   DB.disconnect
                   GC.start        
