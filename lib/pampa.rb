@@ -805,19 +805,25 @@ module BlackStack
               end
             end
             
+            def update(o)
+              DB[self.table.to_sym].where(
+                self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]
+              ).update(o)
+            end
+
             def relaunch(o)
               o[self.field_id.to_sym] = nil
               o[self.field_time.to_sym] = nil
               o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
               o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
-              o.save
+              self.update(o)
             end
         
             def start(o)
               if self.starter_function.nil?
                 o[self.field_start_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_times.to_sym] = o[self.field_times.to_sym].to_i + 1
-                o.save
+                self.update(o)
               else
                 self.starter_function.call(o, self)
               end
@@ -828,7 +834,7 @@ module BlackStack
                 o[self.field_end_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_success.to_sym] = e.nil?
                 o[self.field_error_description.to_sym] = e.to_console if !e.nil? 
-                o.save
+                self.update(o)
               else
                 self.finisher_function.call(o, e, self)
               end
@@ -866,7 +872,7 @@ module BlackStack
                   o[self.field_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] # IMPORTANT: use DB location to get current time.
                   o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
                   o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
-                  o.save
+                  self.update(o)
                   # release resources
                   DB.disconnect
                   GC.start        
