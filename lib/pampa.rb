@@ -486,6 +486,9 @@ module BlackStack
         # connect the nodes via ssh.
         # get how many minutes the worker wrote the log file
         # close the connection
+        #
+        # DEPRECATED. Use `ps aux | grep "..."` to know if a process is running or not. 
+        #
         def self.log_minutes_ago(node_name, worker_id)
             # get the node
             n = self.nodes.select { |n| n.name == node_name }.first
@@ -888,45 +891,40 @@ module BlackStack
             # reporting method: idle
             # reutrn the number of idle tasks.
             # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
-            def idle(max_tasks_to_show=25)
-                j = self
-                ret = j.selecting(max_tasks_to_show).size
-                ret = ret >= max_tasks_to_show ? "#{ret.to_label}+" : ret.to_label
-                ret
-            end # def idle
-
-            # reporting method: running
-            # return the number of running tasks.
-            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
-            def running(max_tasks_to_show=25)
-                j = self
-                ret = 0
-                BlackStack::Pampa::nodes.each { |n|
-                    n.workers.each { |w|
-                        ret += j.occupied_slots(w).size
-                        break if ret>=max_tasks_to_show
-                    }
-                }
-                ret = ret >= max_tasks_to_show ? "#{max_tasks_to_show}+" : ret.to_label
-                ret
-            end # def idle
-
-            # reporting method: running
-            # return the number of running tasks.
-            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
-            def failed(max_tasks_to_show=25)
-                j = self
+            def idle
                 q = "
-                    SELECT * 
+                    SELECT COUNT(*) AS n
                     FROM #{j.table.to_s} 
-                    WHERE COALESCE(#{j.field_success.to_s},true)=false
-                    --AND #{j.field_end_time.to_s} IS NULL
-                    --AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
-                    LIMIT #{max_tasks_to_show}
+                    WHERE COALESCE(#{j.field_success.to_s},false)=false
+                    AND COALESCE(#{j.field_times.to_s},0) < #{j.max_try_times.to_i}
                 "
-                ret = DB[q].all.size
-                ret = ret >= max_tasks_to_show ? "#{ret.to_label}+" : ret.to_label
-                ret
+                DB[q].first[:n]
+            end # def idle
+
+            # reporting method: running
+            # return the number of running tasks.
+            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            def running
+                q = "
+                    SELECT COUNT(*) AS n
+                    FROM #{j.table.to_s} 
+                    WHERE #{j.field_start_success.to_s} IS NOT NULL
+                    AND #{j.field_end_success.to_s} IS NULL
+                "
+                DB[q].first[:n]
+            end # def idle
+
+            # reporting method: running
+            # return the number of running tasks.
+            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            def failed
+                q = "
+                    SELECT COUNT(*) AS n
+                    FROM #{j.table.to_s} 
+                    WHERE COALESCE(#{j.field_success.to_s},false)=false
+                    AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
+                "
+                DB[q].first[:n]
             end # def idle
 
             # reporting method: error_descriptions
@@ -938,8 +936,6 @@ module BlackStack
                     SELECT #{j.field_primary_key.to_s} as id, #{j.field_error_description.to_s} as description 
                     FROM #{j.table.to_s} 
                     WHERE COALESCE(#{j.field_success.to_s},true)=false
-                    --AND #{j.field_end_time.to_s} IS NULL
-                    --AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
                     LIMIT #{max_tasks_to_show}
                 "
                 DB[q].all
