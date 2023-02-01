@@ -169,7 +169,7 @@ module BlackStack
             l.logs "job #{job.name}... "
               # get the workers that match the filter
               l.logs "Getting workers that match the filter... "
-              workers = all_workers.select { |w| w.name =~ job.filter_worker_name }
+              workers = all_workers.select { |w| w.id =~ job.filter_worker_id }
               l.logf "done (#{workers.size.to_s})"
               # if theere are workers
               if workers.size > 0
@@ -665,7 +665,7 @@ module BlackStack
             attr_accessor :max_pending_tasks
             attr_accessor :max_assigned_workers
             # choose workers to assign tasks
-            attr_accessor :filter_worker_name
+            attr_accessor :filter_worker_id
 
             # return a hash descriptor of the job
             def to_hash()
@@ -693,7 +693,7 @@ module BlackStack
                     :processing_function => self.processing_function.to_s,
                     :max_pending_tasks => self.max_pending_tasks,
                     :max_assigned_workers => self.max_assigned_workers,
-                    :filter_worker_name => self.filter_worker_name
+                    :filter_worker_id => self.filter_worker_id
                 }
             end
 
@@ -729,7 +729,7 @@ module BlackStack
               self.processing_function = h[:processing_function]
               self.max_pending_tasks = h[:max_pending_tasks]
               self.max_assigned_workers = h[:max_assigned_workers]
-              self.filter_worker_name = h[:filter_worker_name]
+              self.filter_worker_id = h[:filter_worker_id]
             end
             
             # returns an array of tasks pending to be processed by the worker.
