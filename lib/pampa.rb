@@ -159,17 +159,17 @@ module BlackStack
           raise "The connection string is blank" if @@connection_string.strip.empty?
           # getting logger
           l = self.logger()
-          # get attached and unassigned workers 
-          l.logs "Getting attached and unassigned workers... "
-          all_workers = BlackStack::Pampa.workers.select { |w| w.attached && w.assigned_job.nil? }
-          l.logf "done (#{all_workers.size.to_s})"
           # get the job this worker is working with
           BlackStack::Pampa.jobs.each { |job|
             l.log ''
             l.logs "job #{job.name}... "
+              # get attached and unassigned workers 
+              l.logs "Getting attached and unassigned workers... "
+              workers = BlackStack::Pampa.workers.select { |w| w.attached && w.assigned_job.nil? }
+              l.logf "done (#{workers.size.to_s})"
               # get the workers that match the filter
               l.logs "Getting workers that match the filter... "
-              workers = all_workers.select { |w| w.id =~ job.filter_worker_id }
+              workers = workers.select { |w| w.id =~ job.filter_worker_id }
               l.logf "done (#{workers.size.to_s})"
               # if theere are workers
               if workers.size > 0
@@ -177,57 +177,58 @@ module BlackStack
                 assigned = BlackStack::Pampa.workers.select { |worker| worker.attached && worker.assigned_job.to_s == job.name.to_s }
                 l.logf("done (#{assigned.size.to_s})")
 
-                l.logs("Getting total pending tasks... ")
-                pendings = job.selecting(job.max_pending_tasks)
-                l.logf("done (#{pendings.size.to_s})")
+                l.logs("Getting total pending (idle) tasks... ")
+                pendings = job.idle
+                l.logf("done (#{pendings.to_s})")
 
-                l.logs("Has 0 tasks?.... ")
+                l.logs("0 pending tasks?.... ")
                 if pendings.size == 0
                   l.logf("yes")
 
                   l.logs("Unassigning all assigned workers... ")
                   assigned.each { |w|
-                    l.logs("Unassigning worker #{w.id}... ")
+                    l.logs("Unassigning worker... ")
                     w.assigned_job = nil
-                    l.done
-
-                    l.logs("Adding worker #{w.id} to the list of unassigned... ")
-                    workers << w
-                    l.done
+                    workers << w # add worker back to the list of unassigned
+                    l.logf "done (#{w.id})"
                   }
                   l.done
                 else
                   l.logf("no")
 
-                  l.logs("Reached :max_pending_tasks (#{job.max_pending_tasks}) and more than 1 assigned workers ?... ")
+                  l.logs("Under :max_pending_tasks (#{job.max_pending_tasks}) and more than 1 assigned workers ?... ")
                   if pendings.size < job.max_pending_tasks && assigned.size > 1
-                    l.logf("no")
-
-                    l.logs("Unassigning worker... ")
-                    w = assigned.first # TODO: find a worker with no pending tasks
-                    w.assigned_job = nil
-                    l.done
-
-                    l.logs("Adding worker from the list of unassigned... ")
-                    workers << w
-                    l.done
-                  else
                     l.logf("yes")
 
-                    l.logs("Reached :max_assigned_workers (#{job.max_assigned_workers}) and more than 0 assigned workers?... ")
-                    if assigned.size >= job.max_assigned_workers && assigned.size > 0
+                    while assigned.size > 1
+                      l.logs("Unassigning worker... ")
+                      w = assigned.pop # TODO: find a worker with no pending tasks
+                      w.assigned_job = nil
+                      workers << w # add worker back to the array of unassigned workers
+                      l.logf "done (#{w.id})"
+                    end
+                  else
+                    l.logf("no")
+
+                    l.logs("Over :max_assigned_workers (#{job.max_assigned_workers}) and more than 1 assigned workers?... ")
+                    if assigned.size >= job.max_assigned_workers && assigned.size > 1
                       l.logf("yes")
                     else
                       l.logf("no")
 
-                      l.logs("Assigning worker... ")
-                      w = workers.first
-                      w.assigned_job = job.name.to_sym
-                      l.done
-
-                      l.logs("Removing worker from the list of unassigned... ")
-                      workers.delete(w)
-                      l.done
+                      i = assigned.size
+                      while i < job.max_assigned_workers
+                        i += 1
+                        l.logs("Assigning worker... ")
+                        w = workers.pop
+                        if w.nil?
+                          l.logf("no more workers")
+                          break
+                        else
+                          w.assigned_job = job.name.to_sym
+                          l.logf "done (#{w.id})"
+                        end
+                      end # while i < job.max_assigned_workers
                     end # if assigned.size >= job.max_assigned_workers && assigned.size > 0
                   end # if pendings.size < job.max_pending_tasks && assigned.size > 1
                 end # if pendings.size == 0
@@ -433,7 +434,6 @@ module BlackStack
                         cd #{BlackStack::Pampa.working_directory}; 
                         nohup ruby #{worker_filename} id=#{worker.id} config=#{self.config_filename} >/dev/null 2>&1 &
                       \" > #{BlackStack::Pampa.working_directory}/#{worker.id}.sh"
-#binding.pry
                       node.exec(s, false);
                       s = "nohup bash #{BlackStack::Pampa.working_directory}/#{worker.id}.sh >/dev/null 2>&1 &"
                       node.exec(s, false);
@@ -811,7 +811,17 @@ module BlackStack
             end
             
             def update(o)
-              DB[self.table.to_sym].where(
+              # use the select to update ONLY the pampa fields.
+              DB[self.table.to_sym].select(
+                :field_primary_key,
+                :field_id,
+                :field_time,
+                :field_times,
+                :field_start_time,
+                :field_end_time,
+                :field_success,
+                :field_error_description
+              ).where(
                 self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]
               ).update(o)
             end
@@ -869,63 +879,95 @@ module BlackStack
               # dispatching n pending records
               i = 0
               if n>0
-                self.selecting(n).each { |o|
-                  # count the # of dispatched
-                  i += 1
-                  # dispatch 
-                  o[self.field_id.to_sym] = worker.id
-                  o[self.field_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] # IMPORTANT: use DB location to get current time.
-                  o[self.field_start_time.to_sym] = nil if !self.field_start_time.nil?
-                  o[self.field_end_time.to_sym] = nil if !self.field_end_time.nil?
-                  self.update(o)
-                  # release resources
-                  DB.disconnect
-                  GC.start        
-                }
+                ids = self.selecting(n).map { |h| h[:id] }
+
+                i = ids.size
+                q = "
+                  UPDATE #{self.table.to_s}
+                  SET 
+                    #{self.field_id.to_s} = '#{worker.id}', 
+                "
+
+                if !self.field_start_time.nil?
+                  q += "
+                  #{self.field_start_time.to_s} = NULL,
+                  "
+                end
+
+                if !self.field_end_time.nil?
+                  q += "
+                  #{self.field_end_time.to_s} = NULL,
+                  "                  
+                end
+
+                q += "
+                  #{self.field_time.to_s} = CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP)  
+                  WHERE #{self.field_primary_key.to_s} IN ('#{ids.join("','")}')
+                "
+
+                DB.execute(q)
               end
               
               #      
               return i
             end
 
+# reporting methods
+# idle + failed + completed = total
+
+            # reporting method: idle
+            # reutrn the number of idle tasks.
+            # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            def total
+              j = self
+              q = "
+                  SELECT COUNT(*) AS n
+                  FROM #{j.table.to_s} 
+              "
+              DB[q].first[:n].to_i
+            end # def total
+
+
+            # reporting method: idle
+            # reutrn the number of idle tasks.
+            # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            def completed
+              j = self
+              q = "
+                  SELECT COUNT(*) AS n
+                  FROM #{j.table.to_s} 
+                  WHERE COALESCE(#{j.field_success.to_s},false)=true
+              "
+              DB[q].first[:n].to_i
+            end # def completed
+
             # reporting method: idle
             # reutrn the number of idle tasks.
             # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
             def idle
+                j = self
                 q = "
                     SELECT COUNT(*) AS n
                     FROM #{j.table.to_s} 
                     WHERE COALESCE(#{j.field_success.to_s},false)=false
                     AND COALESCE(#{j.field_times.to_s},0) < #{j.max_try_times.to_i}
                 "
-                DB[q].first[:n]
-            end # def idle
-
-            # reporting method: running
-            # return the number of running tasks.
-            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
-            def running
-                q = "
-                    SELECT COUNT(*) AS n
-                    FROM #{j.table.to_s} 
-                    WHERE #{j.field_start_success.to_s} IS NOT NULL
-                    AND #{j.field_end_success.to_s} IS NULL
-                "
-                DB[q].first[:n]
+                DB[q].first[:n].to_i
             end # def idle
 
             # reporting method: running
             # return the number of running tasks.
             # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
             def failed
-                q = "
-                    SELECT COUNT(*) AS n
-                    FROM #{j.table.to_s} 
-                    WHERE COALESCE(#{j.field_success.to_s},false)=false
-                    AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
-                "
-                DB[q].first[:n]
-            end # def idle
+              j = self
+              q = "
+                  SELECT COUNT(*) AS n
+                  FROM #{j.table.to_s} 
+                  WHERE COALESCE(#{j.field_success.to_s},false)=false
+                  AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
+              "
+              DB[q].first[:n].to_i
+            end # def falsed
 
             # reporting method: error_descriptions
             # return an array of hashes { :id, :error_description } with the tasks that have an the success flag in false, error description.
