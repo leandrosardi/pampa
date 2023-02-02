@@ -881,31 +881,34 @@ module BlackStack
                 ids = self.selecting(n).map { |h| h[:id] }
 
                 i = ids.size
-                q = "
-                  UPDATE #{self.table.to_s}
-                  SET 
-                    #{self.field_id.to_s} = '#{worker.id}', 
-                "
 
-                if !self.field_start_time.nil?
-                  q += "
-                  #{self.field_start_time.to_s} = NULL,
+                if i>0
+                  q = "
+                    UPDATE #{self.table.to_s}
+                    SET 
+                      #{self.field_id.to_s} = '#{worker.id}', 
                   "
-                end
 
-                if !self.field_end_time.nil?
+                  if !self.field_start_time.nil?
+                    q += "
+                    #{self.field_start_time.to_s} = NULL,
+                    "
+                  end
+
+                  if !self.field_end_time.nil?
+                    q += "
+                    #{self.field_end_time.to_s} = NULL,
+                    "                  
+                  end
+
                   q += "
-                  #{self.field_end_time.to_s} = NULL,
-                  "                  
-                end
+                    #{self.field_time.to_s} = CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP)  
+                    WHERE #{self.field_primary_key.to_s} IN ('#{ids.join("','")}')
+                  "
 
-                q += "
-                  #{self.field_time.to_s} = CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP)  
-                  WHERE #{self.field_primary_key.to_s} IN ('#{ids.join("','")}')
-                "
-
-                DB.execute(q)
-              end
+                  DB.execute(q)
+                end # if i>0
+              end # if n>0
               
               #      
               return i
