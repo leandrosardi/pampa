@@ -811,19 +811,19 @@ module BlackStack
             end
             
             def update(o)
-              # use the select to update ONLY the pampa fields.
-              DB[self.table.to_sym].select(
-                :field_primary_key,
-                :field_id,
-                :field_time,
-                :field_times,
-                :field_start_time,
-                :field_end_time,
-                :field_success,
-                :field_error_description
-              ).where(
-                self.field_primary_key.to_sym => o[self.field_primary_key.to_sym]
-              ).update(o)
+              q = "
+                UPDATE #{self.table.to_s}
+                SET
+                  #{self.field_time} = #{o[self.field_time.to_sym].nil? ? 'NULL' : "'#{o[self.field_time.to_sym].to_s}'"},
+                  #{self.field_times} = #{o[self.field_times.to_sym].to_i},
+                  #{self.field_start_time} = #{o[self.field_start_time.to_sym].nil? ? 'NULL' : "'#{o[self.field_start_time.to_sym].to_s}'"}, 
+                  #{self.field_end_time} = #{o[self.field_end_time.to_sym].nil? ? 'NULL' : "'#{o[self.field_end_time.to_sym].to_s}'"},
+                  #{self.field_success} = #{o[self.field_success.to_sym].nil? ? 'NULL' : o[self.field_success.to_sym].to_s},
+                  #{self.field_error_description} = #{o[self.field_error_description.to_sym].nil? ? 'NULL' : "'#{o[self.field_error_description.to_sym].to_sql}'"}
+                WHERE #{self.field_primary_key} = '#{o[self.field_primary_key.to_sym]}'
+              "
+binding.pry
+              DB.execute(q)
             end
 
             def relaunch(o)
