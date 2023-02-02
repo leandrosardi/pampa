@@ -822,7 +822,6 @@ module BlackStack
                   #{self.field_error_description} = #{o[self.field_error_description.to_sym].nil? ? 'NULL' : "'#{o[self.field_error_description.to_sym].to_sql}'"}
                 WHERE #{self.field_primary_key} = '#{o[self.field_primary_key.to_sym]}'
               "
-binding.pry
               DB.execute(q)
             end
 
