@@ -790,8 +790,7 @@ module BlackStack
               q = "
                 SELECT * 
                 FROM #{self.table.to_s} 
-                WHERE #{self.field_time.to_s} IS NOT NULL 
-                AND #{self.field_time.to_s} < CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
+                WHERE COALESCE(#{self.field_time.to_s}, '1900-01-01') < CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
                 AND #{self.field_id.to_s} IS NOT NULL 
                 AND #{self.field_end_time.to_s} IS NULL
                 AND COALESCE(#{self.field_times.to_s},0) < #{self.max_try_times.to_i}
@@ -814,6 +813,7 @@ module BlackStack
               q = "
                 UPDATE #{self.table.to_s}
                 SET
+                  #{self.field_id.to_s} = #{o[self.field_id.to_sym].nil? ? 'NULL' : "'#{o[self.field_id.to_sym]}'"},
                   #{self.field_time} = #{o[self.field_time.to_sym].nil? ? 'NULL' : "'#{o[self.field_time.to_sym].to_s}'"},
                   #{self.field_times} = #{o[self.field_times.to_sym].to_i},
                   #{self.field_start_time} = #{o[self.field_start_time.to_sym].nil? ? 'NULL' : "'#{o[self.field_start_time.to_sym].to_s}'"}, 
