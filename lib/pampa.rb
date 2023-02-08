@@ -289,7 +289,7 @@ module BlackStack
             l = self.logger()
             # iterate the workers
             BlackStack::Pampa.workers.each { |worker|
-                l.logs("worker:#{worker.id}... ")
+                l.logs("worker:#{worker.id} (job:#{worker.assigned_job.to_s})... ")
                 if !worker.attached
                   l.logf("detached")
                 else
