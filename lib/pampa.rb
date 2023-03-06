@@ -245,7 +245,7 @@ module BlackStack
         # - config: relative path of the configuration file. Example: '../config.rb'
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
-        def self.relaunch()
+        def self.relaunch(n=1000)
           # validate: the connection string is not nil
           raise "The connection string is nil" if @@connection_string.nil?
           # validate: the connection string is not empty
@@ -257,8 +257,8 @@ module BlackStack
           # iterate the workers
           BlackStack::Pampa.jobs.each { |job|
             l.logs("job:#{job.name}... ")
-              l.logs("Gettting tasks to relaunch (max #{job.queue_size.to_s})... ")
-              tasks = job.relaunching(job.queue_size+1)
+              l.logs("Gettting tasks to relaunch (max #{n})... ")
+              tasks = job.relaunching(n)
               l.logf("done (#{tasks.size.to_s})")
 
               tasks.each { |task| 
