@@ -245,7 +245,7 @@ module BlackStack
         # - config: relative path of the configuration file. Example: '../config.rb'
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
-        def self.relaunch(n=1000)
+        def self.relaunch(n=10000)
           # validate: the connection string is not nil
           raise "The connection string is nil" if @@connection_string.nil?
           # validate: the connection string is not empty
