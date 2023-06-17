@@ -1,7 +1,7 @@
 
-![Gem version](https://img.shields.io/gem/v/pampa)![Gem downloads](https://img.shields.io/gem/dt/pampa)
+![Gem version](https://img.shields.io/gem/v/pampa) ![Gem downloads](https://img.shields.io/gem/dt/pampa)
 
-![logo](./logo-50.png)
+![logo](./logo-100.png)
 
 # Pampa - Async & Distributed Data Processing
 
@@ -21,14 +21,14 @@ The **Pampa** framework may be widely used for:
 
 and any other tasks that require a virtually infinite amount of CPU computing and memory resources.
 
-1. [Installation](#)
-2. [Getting Started]()
-    1. [Define a Cluster]()
-    2. [Define a Job]()
-    3. [Setup Database Connection]()
-    4. [Start Processing]()
-3. [Running Workers]()
-4. [Running Dispatcher]()
+1. [Installation](#1-installation)
+2. [Getting Started](#2-getting-started)
+    1. [Define a Cluster](#21-defining-clusters)
+    2. [Define a Job](#22-defining-jobs)
+    3. [Setup Database Connection](#23-setting-database-connection)
+    4. [Start Processing](#24-setting-output-log-file)
+3. [Running Workers](#3-running-workers)
+4. [Running Dispatcher](#4-running-dispatcher)
 
 ## 1. Installation
 
@@ -128,7 +128,6 @@ BlackStack::Pampa.add_job({
 Add this code to your `config.rb` file:
 
 ```ruby
-require 'sequel'
 BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
 ```
 
@@ -175,7 +174,6 @@ rescue => e
   # flag task as finished with error
   job.finish(task, e)
 end
-
 ```
 
 ## 4. Running Dispatcher
