@@ -63,8 +63,6 @@ The code below define your computer as a **node** of 10 **workers**.
 Add this code to your `config.rb` file:
 
 ```ruby
-require 'pampa'
-
 # setup one or more nodes (computers) where to launch worker processes
 n = BlackStack::Pampa.add_nodes(
   [
@@ -148,7 +146,7 @@ BlackStack::Pampa.set_log_filename '~/pampa.log'
 
 ```ruby
 require 'pampa'
-require_relative './config'
+require 'config'
 
 # grab a worker
 worker = BlackStack::Pampa.workers.select { |w| w.id == 'local.1' }.first
@@ -178,7 +176,7 @@ end
 
 ```ruby
 require 'pampa'
-require_relative './config'
+require 'config'
 
 # assign workers to each job
 BlackStack::Pampa.stretch
@@ -190,80 +188,27 @@ BlackStack::Pampa.relaunch
 BlackStack::Pampa.dispatch
 ```
 
-## 5. Watching the Status of a Worker
+## 6. Custom Dispatching Functions
 
-_(this feature is pending to develop)_
 
-```ruby
-irb> require_relative './config.rb'
-irb> n = BlackStack::Pampa::nodes.first
-irb> w = n.workers.first
-irb> puts "Last log update: #{w.log_minutes_ago.to_s} mins. ago"
-```
 
-Here is [an example](./examples/watching.rb) of watching all the workers of the cluster.
-
-## 6. Watching the Queue of a Worker
-
-_(this feature is pending to develop)_
-
-```ruby
-irb> require_relative './config.rb'
-irb> n = BlackStack::Pampa::nodes.first
-irb> w = n.workers.first
-irb> puts "Tasks in queue: #{w.pending_tasks(:search_odd_numbers).to_s}"
-```
-
-Here is [an example](./examples/watching.rb) of watching all the workers of the cluster.
-
-## 7. Suspending Workers and Clusters
-
-_(this feature is pending to develop)_
-
-```ruby
-irb> require_relative './config.rb'
-irb> n = BlackStack::Pampa::nodes.first
-irb> n.stop
-```
-
-```ruby
-irb> n.start
-```
-
-```ruby
-irb> w = n.workers.first
-irb> w.stop
-```
-
-```ruby
-irb> w.start
-```
-
-## 8. Elastic Jobs Processing
-
-_(this feature is pending to develop)_
-
-Define the maximum tasks tasks allowed.
-Define the minumum number of workers assigned for a job.
-Define the maximum number of workers assigned for a job.
-
-## 10. Customized Counting Pending Tasks: `:occupied_function`
+### 6.1. Counting Pending Tasks: `:occupied_function`
 
 _(this feature is pending to develop)_
 
 The `:occupied_function` function returns an array with the pending **tasks** in queue for a **worker**.
 
-The default function returnss all the **tasks** with `:field_id` equel to the name of the worker, and the `:field_start_time` empty.
+The default function returnss all the **tasks** with `:field_id` equal to the name of the worker, and the `:field_start_time` empty.
 
 You can setup a custom version of this function.
 
-Example: You may want to sort 
+Example: You may want to sort ....
 
 additional function to decide how many records are pending for processing
 it should returns an integer
 keep it nil if you want to run the default function
 
-## 11. Customized Selecting of Workers: `:allowing_function`
+### 6.2. Selecting of Workers: `:allowing_function`
 
 _(this feature is pending to develop)_
 
@@ -272,22 +217,17 @@ example: use this function when you want to decide based on the remaining credit
 it should returns true or false
 keep it nil if you want it returns always true
 
-## 12. Customized Selection of Queue Tasks: `:selecting_function`
+### 6.3. Selection of Next Tasks: `:selecting_function`
 
 additional function to choose the records to launch
 it should returns an array of IDs
 keep this parameter nil if you want to use the default algorithm
 
-## 13. Customized Tasks Relaunching: `:relaunching_function`
+### 6.4. Relaunching: `:relaunching_function`
 
 additional function to choose the records to retry
 keep this parameter nil if you want to use the default algorithm
 
-## 14. Advanced Nodes Connection
-
-**Pampa** uses **SSH** to connect each **node** to deploy **workers**.
-
-If you need advanced features for connecting a **node** (like using a key file instead of password), refer to the [blackstack-nodes documentation](https://github.com/leandrosardi/blackstack-nodes).
 
 ## 15. Scheduled Tasks
 
