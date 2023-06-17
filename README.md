@@ -21,6 +21,10 @@ The **Pampa** framework may be widely used for:
 
 and any other tasks that require a virtually infinite amount of CPU computing and memory resources.
 
+As a final words, **Pampa** supports [PostrgreSQL](https://www.postgresql.org) and [CockroachDB](https://www.cockroachlabs.com).
+
+## Outline
+
 1. [Installation](#1-installation)
 2. [Getting Started](#2-getting-started)
     1. [Define a Cluster](#21-defining-clusters)
@@ -130,12 +134,6 @@ Add this code to your `config.rb` file:
 ```ruby
 BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
 ```
-
-**Pampa** uses [Sequel](https://sequel.jeremyevans.net/)'s methods for building SQL expressions. 
-
-Then, you can connect **Pampa** to any RDBMS. 
-
-The connection string above works with either [PostrgreSQL](https://www.postgresql.org) or [CockroachDB](https://www.cockroachlabs.com).
 
 ### 2.4. Setting Output Log File
 
