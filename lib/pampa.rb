@@ -25,7 +25,7 @@ module BlackStack
 
         def self.now()
           tz = 'America/Argentina/Buenos_Aires' #DB["SELECT current_setting('TIMEZONE') AS tz"].first[:tz]
-          DB["SELECT current_timestamp() at TIME ZONE '#{tz}' AS now"].first[:now]
+          DB["SELECT current_timestamp at TIME ZONE '#{tz}' AS now"].first[:now]
         end
 
         # @@integrate_with_blackstack_deployer
