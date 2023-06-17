@@ -1,8 +1,7 @@
 
 ![Gem version](https://img.shields.io/gem/v/pampa)![Gem downloads](https://img.shields.io/gem/dt/pampa)
 
-## This project is unders construction. Follow me to get updated when the first stable version is released.
-
+![logo](./logo-50.png)
 
 # Pampa - Async & Distributed Data Processing
 
@@ -22,15 +21,14 @@ The **Pampa** framework may be widely used for:
 
 and any other tasks that require a virtually infinite amount of CPU computing and memory resources.
 
-
 1. [Installation](#)
 2. [Getting Started]()
     1. [Define a Cluster]()
     2. [Define a Job]()
     3. [Setup Database Connection]()
     4. [Start Processing]()
-3. 
-
+3. [Running Workers]()
+4. [Running Dispatcher]()
 
 ## 1. Installation
 
@@ -67,6 +65,7 @@ require 'pampa'
 n = BlackStack::Pampa.add_nodes(
   [
     {
+      :name => 'local'
       # setup SSH connection parameters
       :net_remote_ip => '127.0.0.1',  
       :ssh_username => '<your ssh username>', # example: root
@@ -148,38 +147,56 @@ require 'simple_cloud_logging'
 BlackStack::Pampa.set_log_filename '~/pampa.log'
 ```
 
-### 2.5. Deploying Your Cluster
-
-```bash
-irb> require_relative './config.rb'
-irb> BlackStack::Pampa.deploy
-```
-
-### 2.5. Dispatching Tasks
-
-```bash
-irb> BlackStack::Pampa.dispatch(:search_odd_numbers)
-```
-
-## 3. Stopping Workers Manually
+## 3. Running Workers
 
 ```ruby
-irb> require_relative './config.rb'
-irb> BlackStack::Pampa.stop
+require 'pampa'
+require_relative './config'
+
+# grab a worker
+worker = BlackStack::Pampa.workers.select { |w| w.id == 'local.1' }.first
+
+# grab a job
+job = BlackStack::Pampa.jobs.select { |j| j.name == 'search_odd_numbers' }.first
+
+# grab tasks assigned to this worker
+tasks = job.occupied_slots(worker)
+
+# flag task as started
+job.start(task)
+
+begin
+  # perform task
+  job.processing_function.call(task, l, job, worker)
+
+  # flag task as finished successfully
+  job.finish(task)
+rescue => e
+  # flag task as finished with error
+  job.finish(task, e)
+end
+
 ```
 
-## 3. Running Workers Manually
+## 4. Running Dispatcher
 
 ```ruby
-irb> require_relative './config.rb'
-irb> BlackStack::Pampa.start
+require 'pampa'
+require_relative './config'
+
+# assign workers to each job
+BlackStack::Pampa.stretch
+
+# relaunch expired tasks
+BlackStack::Pampa.relaunch
+        
+# dispatch tasks to each worker
+BlackStack::Pampa.dispatch
 ```
 
-```bash
-ruby ~/code/pampa/worker.rb id=1 config=~/code/pampa/config.rb debug=yes pampa=~/code/pampa/lib/pampa.rb
-```
+## 5. Watching the Status of a Worker
 
-## 3. Watching the Status of a Worker
+_(this feature is pending to develop)_
 
 ```ruby
 irb> require_relative './config.rb'
@@ -190,7 +207,9 @@ irb> puts "Last log update: #{w.log_minutes_ago.to_s} mins. ago"
 
 Here is [an example](./examples/watching.rb) of watching all the workers of the cluster.
 
-## 4. Watching the Queue of a Worker
+## 6. Watching the Queue of a Worker
+
+_(this feature is pending to develop)_
 
 ```ruby
 irb> require_relative './config.rb'
@@ -201,7 +220,9 @@ irb> puts "Tasks in queue: #{w.pending_tasks(:search_odd_numbers).to_s}"
 
 Here is [an example](./examples/watching.rb) of watching all the workers of the cluster.
 
-## 5. Suspending Workers and Clusters
+## 7. Suspending Workers and Clusters
+
+_(this feature is pending to develop)_
 
 ```ruby
 irb> require_relative './config.rb'
@@ -222,15 +243,17 @@ irb> w.stop
 irb> w.start
 ```
 
-## 5. Elastic Jobs Processing
+## 8. Elastic Jobs Processing
 
-_(this feature is pending of development)_
+_(this feature is pending to develop)_
 
 Define the maximum tasks tasks allowed.
 Define the minumum number of workers assigned for a job.
 Define the maximum number of workers assigned for a job.
 
-## 6. Customized Counting Pending Tasks: `:occupied_function`
+## 10. Customized Counting Pending Tasks: `:occupied_function`
+
+_(this feature is pending to develop)_
 
 The `:occupied_function` function returns an array with the pending **tasks** in queue for a **worker**.
 
@@ -244,47 +267,47 @@ additional function to decide how many records are pending for processing
 it should returns an integer
 keep it nil if you want to run the default function
 
-## 5. Customized Selecting of Workers: `:allowing_function`
+## 11. Customized Selecting of Workers: `:allowing_function`
+
+_(this feature is pending to develop)_
 
 additional function to decide if the worker can dispatch or not
 example: use this function when you want to decide based on the remaining credits of the client
 it should returns true or false
 keep it nil if you want it returns always true
 
-## 6. Customized Selection of Queue Tasks: `:selecting_function`
+## 12. Customized Selection of Queue Tasks: `:selecting_function`
 
 additional function to choose the records to launch
 it should returns an array of IDs
 keep this parameter nil if you want to use the default algorithm
 
-## 7. Customized Tasks Relaunching: `:relaunching_function`
+## 13. Customized Tasks Relaunching: `:relaunching_function`
 
 additional function to choose the records to retry
 keep this parameter nil if you want to use the default algorithm
 
-## 8. Advanced Nodes Connection
+## 14. Advanced Nodes Connection
 
 **Pampa** uses **SSH** to connect each **node** to deploy **workers**.
 
 If you need advanced features for connecting a **node** (like using a key file instead of password), refer to the [blackstack-nodes documentation](https://github.com/leandrosardi/blackstack-nodes).
 
-## 9. Scheduled Tasks
+## 15. Scheduled Tasks
 
-_(pending)_
+_(this feature is pending to develop)_
 
-## 9. Recurrent Tasks
+## 16. Recurrent Tasks
 
-_(pending)_
+_(this feature is pending to develop)_
 
-## 9. Multi-level Dispatching
+## 17. Multi-level Dispatching
 
-_(pending)_
+_(this feature is pending to develop)_
 
-## 
+## 18. Setup Resources for Workers
 
-## 8. Setup Resources for Workers
-
-_(pending)_
+_(this feature is pending to develop)_
 
 ```ruby
 # setup nodes (computers) where to launch
@@ -308,10 +331,10 @@ n = BlackStack::Pampa.add_nodes([{
 }])
 ```
 
-## Inspiration
+## 19. Inspiration
 
 - [https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox](https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox)
 
-## Disclaimer
+## 20. Disclaimer
 
-The logo has been taken from [here](https://www.shareicon.net/lines-circles-endpoints-nodes-658150).
+The logo has been taken from [here](https://icons8.com/icon/ay4lYdOUt1Vd/geometric-figures).
