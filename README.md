@@ -7,7 +7,7 @@
 
 # Pampa - Async & Distributed Data Processing
 
-**Pampa** is a Ruby library for async & distributing computing providing the following features:
+**Pampa** is a Ruby library for async & distributed computing, providing the following features:
 
 - cluster-management with dynamic reconfiguration (joining and leaving nodes);
 - distribution of the computation jobs to the (active) nodes;
