@@ -177,8 +177,8 @@ module BlackStack
                 assigned = BlackStack::Pampa.workers.select { |worker| worker.attached && worker.assigned_job.to_s == job.name.to_s }
                 l.logf("done (#{assigned.size.to_s})")
 
-                l.logs("Getting total pending (idle) tasks... ")
-                pendings = job.idle
+                l.logs("Getting total pending (pending) tasks... ")
+                pendings = job.pending
                 l.logf("done (#{pendings.to_s})")
 
                 l.logs("0 pending tasks?.... ")
@@ -632,6 +632,9 @@ module BlackStack
             # max number of times that a record can start to process & fail (:start_time field is not nil, 
             # but :end_time field is still nil after :max_job_duration_minutes)
             attr_accessor :max_try_times
+
+            # CUSTOM DISPATCHING FUNCTIONS
+            # 
             # additional function to returns an array of tasks pending to be processed by a worker.
             # it should returns an array
             # keep it nil if you want to run the default function
@@ -661,9 +664,23 @@ module BlackStack
             attr_accessor :finisher_function
             # Function to execute for each task.
             attr_accessor :processing_function
+
+            # CUSTOM REPORTING FUNCTIONS
+            # 
+            # additional function to returns the number of total tasks.
+            # it should returns an array
+            # keep it nil if you want to run the default function
+            attr_accessor :total_function
+            attr_accessor :completed_function
+            attr_accessor :pending_function
+            attr_accessor :failed_function
+
+            # ELASTIC WORKERS ASSIGNATION
+            # 
             # stretch assignation/unassignation of workers
             attr_accessor :max_pending_tasks
             attr_accessor :max_assigned_workers
+
             # choose workers to assign tasks
             attr_accessor :filter_worker_id
 
@@ -683,6 +700,8 @@ module BlackStack
                     :queue_size => self.queue_size,
                     :max_job_duration_minutes => self.max_job_duration_minutes,
                     :max_try_times => self.max_try_times,
+
+                    # dispatching custom functions
                     :occupied_function => self.occupied_function.to_s,
                     :allowing_function => self.allowing_function.to_s,
                     :selecting_function => self.selecting_function.to_s,
@@ -693,7 +712,13 @@ module BlackStack
                     :processing_function => self.processing_function.to_s,
                     :max_pending_tasks => self.max_pending_tasks,
                     :max_assigned_workers => self.max_assigned_workers,
-                    :filter_worker_id => self.filter_worker_id
+                    :filter_worker_id => self.filter_worker_id,
+
+                    # reporting custom functions
+                    :total_function => self.total_function.to_s,
+                    :completed_function => self.completed_function.to_s,
+                    :pending_function => self.pending_function.to_s,
+                    :failed_function => self.failed_function.to_s,
                 }
             end
 
@@ -721,12 +746,22 @@ module BlackStack
               self.queue_size = h[:queue_size]
               self.max_job_duration_minutes = h[:max_job_duration_minutes]  
               self.max_try_times = h[:max_try_times]
+
+              # dispatching custom functions
               self.occupied_function = h[:occupied_function]
               self.allowing_function = h[:allowing_function]
               self.selecting_function = h[:selecting_function]
               self.relaunching_function = h[:relaunching_function]
               self.relauncher_function = h[:relauncher_function]
               self.processing_function = h[:processing_function]
+
+              # reporting custom functions
+              self.total_function = h[:total_function]
+              self.completed_function = h[:completed_function]
+              self.pending_function = h[:pending_function]
+              self.failed_function = h[:failed_function]
+
+              # elastic workers assignation
               self.max_pending_tasks = h[:max_pending_tasks]
               self.max_assigned_workers = h[:max_assigned_workers]
               self.filter_worker_id = h[:filter_worker_id]
@@ -914,62 +949,112 @@ module BlackStack
               return i
             end
 
-# reporting methods
-# idle + failed + completed = total
+            # reporting methods
+            # 
 
-            # reporting method: idle
-            # reutrn the number of idle tasks.
-            # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            # reporting method: total
+            # reutrn the number of total tasks.
+            # if the numbr if total tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
             def total
               j = self
-              q = "
-                  SELECT COUNT(*) AS n
-                  FROM #{j.table.to_s} 
-              "
-              DB[q].first[:n].to_i
+              if self.total_function.nil?
+                q = "
+                    SELECT COUNT(*) AS n
+                    FROM #{j.table.to_s} 
+                "
+                return DB[q].first[:n].to_i
+              else
+                return self.total_function.call
+              end
             end # def total
 
 
-            # reporting method: idle
-            # reutrn the number of idle tasks.
-            # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            # reporting method: completed
+            # reutrn the number of completed tasks.
+            # if the numbr if completed tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
             def completed
               j = self
-              q = "
-                  SELECT COUNT(*) AS n
-                  FROM #{j.table.to_s} 
-                  WHERE COALESCE(#{j.field_success.to_s},false)=true
-              "
-              DB[q].first[:n].to_i
+              if self.completed_function.nil?
+                q = "
+                    SELECT COUNT(*) AS n
+                    FROM #{j.table.to_s} 
+                    WHERE COALESCE(#{j.field_success.to_s},false)=true
+                "
+                return DB[q].first[:n].to_i
+              else
+                return self.completed_function.call
+              end
             end # def completed
 
-            # reporting method: idle
-            # reutrn the number of idle tasks.
-            # if the numbr if idle tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
-            def idle
+            # reporting method: pending
+            # reutrn the number of pending tasks.
+            # if the numbr if pending tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            def pending
                 j = self
+                if self.pending_function.nil?
+                  q = "
+                      SELECT COUNT(*) AS n
+                      FROM #{j.table.to_s} 
+                      WHERE COALESCE(#{j.field_success.to_s},false)=false
+                      AND COALESCE(#{j.field_times.to_s},0) < #{j.max_try_times.to_i}
+                  "
+                  return DB[q].first[:n].to_i
+                else
+                  return self.pending_function.call
+                end
+            end # def pending
+
+            # reporting method: running
+            # return the number of running tasks.
+            # if the number if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            def failed
+              j = self
+              if self.failed_function.nil?
                 q = "
                     SELECT COUNT(*) AS n
                     FROM #{j.table.to_s} 
                     WHERE COALESCE(#{j.field_success.to_s},false)=false
-                    AND COALESCE(#{j.field_times.to_s},0) < #{j.max_try_times.to_i}
+                    AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
                 "
-                DB[q].first[:n].to_i
-            end # def idle
-
-            # reporting method: running
-            # return the number of running tasks.
-            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
-            def failed
-              j = self
-              q = "
-                  SELECT COUNT(*) AS n
-                  FROM #{j.table.to_s} 
-                  WHERE COALESCE(#{j.field_success.to_s},false)=false
-                  AND COALESCE(#{j.field_times.to_s},0) >= #{j.max_try_times.to_i}
-              "
-              DB[q].first[:n].to_i
+                return DB[q].first[:n].to_i
+              else
+                return self.failed_function.call
+              end
             end # def falsed
+
+            # reporting method: timeline
+            # Return an array of hashes with the number of successfull processed taasks in the last period.
+            # The period is defined by the `scale_unit` and `scale_points` parameters.
+            # The `scale_unit` can be `minutes`, `hours`, `days`, `weeks`, `months`, `years`.
+            # The `scale_points` is the number of `scale_unit` to be reported, and it must be an integer higer than 0.
+            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
+            def timeline(scale_unit='minutes', scale_points=60)
+              j = self
+              a = []
+              # validate: The period is defined by the `scale_unit` and `scale_points` parameters.
+              if !['minutes', 'hours', 'days', 'weeks', 'months', 'years'].include?(scale_unit)
+                raise "Invalid scale_unit: #{scale_unit}"
+              end
+              # validate: The `scale_points` is the number of `scale_unit` to be reported, and it must be an integer higer than 0.
+              if !scale_points.is_a?(Integer) || scale_points<=0
+                raise "Invalid scale_points: #{scale_points}"
+              end
+              # generate report
+              point = 0
+              while point<scale_points
+                point += 1
+                q = "
+                  SELECT COUNT(*) AS n
+                  FROM #{j.table.to_s}
+                  WHERE COALESCE(#{j.field_success.to_s},false)=true
+                  AND #{j.field_time.to_s} >= CAST('#{BlackStack::Pampa.now - point.send(scale_unit)}' AS TIMESTAMP)
+                  AND #{j.field_time.to_s} < CAST('#{BlackStack::Pampa.now - (point-1).send(scale_unit)}' AS TIMESTAMP)
+                "
+                a << { :time => BlackStack::Pampa.now - (point-1).send(scale_unit), :n => DB[q].first[:n].to_i }
+              end # while point<scale_points
+              # return
+              a
+            end # def timeline
 
             # reporting method: error_descriptions
             # return an array of hashes { :id, :error_description } with the tasks that have an the success flag in false, error description.
