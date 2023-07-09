@@ -1,6 +1,8 @@
 
 ![Gem version](https://img.shields.io/gem/v/pampa) ![Gem downloads](https://img.shields.io/gem/dt/pampa)
 
+THIS LIBRARY IS STILL UNDER CONSTRUCTION
+
 ![logo](./logo-100.png)
 
 # Pampa - Async & Distributed Data Processing
@@ -21,7 +23,7 @@ The **Pampa** framework may be widely used for:
 
 and any other tasks that require a virtually infinite amount of CPU computing and memory resources.
 
-As a final words, **Pampa** supports [PostrgreSQL](https://www.postgresql.org) and [CockroachDB](https://www.cockroachlabs.com).
+As a final words, **Pampa** supports [PostrgreSQL](https://www.postgresql.org) and [CockroachDB](https://www.cockroachlabs.com), and it has been tested on [Ubuntu 18.04](https://releases.ubuntu.com/18.04/) and [Ruby 3.1.2p20](https://www.ruby-lang.org/en/news/2022/04/12/ruby-3-1-2-released/).
 
 ## Outline
 
@@ -42,7 +44,7 @@ gem install pampa
 
 ## 2. Getting Started
 
-This example set up a **cluster** of **worker** processes to process all the numbers from 1 to 100,000; and build the list of odd numbers inside such a range.
+This example set up a **cluster** of **workers** to process all the numbers from 1 to 100,000; and build the list of odd numbers inside such a range.
 
 Create a new file `~/config.rb` where you will define your **cluster**, **jobs**, **database connection** and **logging**.
 
@@ -50,13 +52,19 @@ Create a new file `~/config.rb` where you will define your **cluster**, **jobs**
 touch ~/config.rb
 ```
 
-### 2.1. Defining Clusters
+Additionally, you may want to add the path `~` to your the environment varaible `RUBYLIB`, in order to require the `config.rb` file from your Ruby code.
 
-First, you have to define a **cluster** of **workers**.
+```bash
+export RUBYLIB=~
+```
+
+### 2.1. Define Your Cluster
+
+As a first, you have to define a **cluster** of **workers**.
 
 - A **cluster** is composed by one or more **nodes** (computers).
 
-- Each **worker** is a process running on a node.
+- Each **worker** is a process running on a **node**.
 
 The code below define your computer as a **node** of 10 **workers**. 
 
@@ -80,11 +88,42 @@ n = BlackStack::Pampa.add_nodes(
 )
 ```
 
-### 2.2. Defining Jobs
+You can always add many **nodes** to your **cluster**:
+
+```ruby
+# setup one or more nodes (computers) where to launch worker processes
+n = BlackStack::Pampa.add_nodes(
+  [
+    {
+      :name => 'n01'
+      # setup SSH connection parameters
+      :net_remote_ip => '192.168.1.1',  
+      :ssh_username => '<ssh username>', # example: root
+      :ssh_port => 22,
+      :ssh_password => '<ssh password>',
+      # setup max number of worker processes
+      :max_workers => 10,
+    }, {
+      :name => 'n02'
+      # setup SSH connection parameters
+      :net_remote_ip => '192.168.1.2',  
+      :ssh_username => '<ssh username>', # example: root
+      :ssh_port => 22,
+      :ssh_password => '<ssh password>',
+      # setup max number of worker processes
+      :max_workers => 10,
+    },
+  ]
+)
+```
+
+### 2.2. Define Your Job
 
 A **job** is a sequence of **tasks**. 
 
-Each **task** performs the same **function** on a different record.
+Each **task** performs the same **function** on different records of a table.
+
+The code below is for processing all records into a table `numbers`, and update the field `is_odd` with `true` or `false`.
 
 Add this code to your `config.rb` file:
 
@@ -127,72 +166,92 @@ BlackStack::Pampa.add_job({
 
 ### 2.3. Setting Database Connection
 
+In order to operate with the table `numbers`, you have to connect **Pampa** to your database.
+
 Add this code to your `config.rb` file:
 
 ```ruby
 BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
 ```
 
-### 2.4. Setting Output Log File
-
-Add this code to your `config.rb` file:
-
-```ruby
-require 'simple_cloud_logging'
-BlackStack::Pampa.set_log_filename '~/pampa.log'
-```
-
 ## 3. Running Workers
+
+Run the code below on your `local` node in order to run your workers.
+
+The code below will start 1 process in background for each worker defined for the `local` node.
 
 ```ruby
 require 'pampa'
 require 'config'
+node_name = 'local'
+workers = BlackStack::Pampa.run_all_workers(node_name)
+```
 
-# grab a worker
-worker = BlackStack::Pampa.workers.select { |w| w.id == 'local.1' }.first
+If you want to run one worker only, use this code instead:
 
-# grab a job
-job = BlackStack::Pampa.jobs.select { |j| j.name == 'search_odd_numbers' }.first
+```ruby
+require 'pampa'
+require 'config'
+worker_name = 'local.1'
+workers = BlackStack::Pampa.run_worker(worker_name)
+```
 
-# grab tasks assigned to this worker
-tasks = job.occupied_slots(worker)
+If you want to stop a worker, use this code:
 
-# flag task as started
-job.start(task)
-
-begin
-  # perform task
-  job.processing_function.call(task, l, job, worker)
-
-  # flag task as finished successfully
-  job.finish(task)
-rescue => e
-  # flag task as finished with error
-  job.finish(task, e)
-end
+```ruby
+require 'pampa'
+require 'config'
+worker_name = 'local.1'
+workers = BlackStack::Pampa.stop_worker(worker_name)
 ```
 
 ## 4. Running Dispatcher
 
+The code below will start 1 process in background called **dispatcher**.
+
+The **dispatcher** will assign **tasks** to the nodes, and it will restart failed tasks too.
+
 ```ruby
 require 'pampa'
 require 'config'
-
-# assign workers to each job
-BlackStack::Pampa.stretch
-
-# relaunch expired tasks
-BlackStack::Pampa.relaunch
-        
-# dispatch tasks to each worker
-BlackStack::Pampa.dispatch
+node_name = 'local'
+workers = BlackStack::Pampa.run_dispatcher
 ```
+
+## 5. Reporting
+
+_(pending to write this section)_
 
 ## 6. Custom Dispatching Functions
 
+_(pending to write this section)_
 
+### 6.1. Selection of Next Tasks: `:selecting_function`
 
-### 6.1. Counting Pending Tasks: `:occupied_function`
+You may want to processes records who meet with a condition.
+For example, you may want to download a CSV only after you have received a signal from your provider telling you the CSV is ready for download. 
+
+additional function to choose the records to launch
+it should returns an array of IDs
+keep this parameter nil if you want to use the default algorithm
+
+### 6.2. Relaunching: `:relaunching_function`
+
+You may want to re-processes recurrently every few minutes or hours. 
+For example, you may want to monitor servers.
+
+additional function to choose the records to retry
+keep this parameter nil if you want to use the default algorithm
+
+## 7. Custom Reporting Function
+
+_(pending to write this section)_
+
+## 8. Further Work
+
+_(pending to write this section)_
+
+### 8.1. Counting Pending Tasks: `:occupied_function`
 
 _(this feature is pending to develop)_
 
@@ -208,7 +267,7 @@ additional function to decide how many records are pending for processing
 it should returns an integer
 keep it nil if you want to run the default function
 
-### 6.2. Selecting of Workers: `:allowing_function`
+### 8.2. Selecting of Workers: `:allowing_function`
 
 _(this feature is pending to develop)_
 
@@ -217,31 +276,15 @@ example: use this function when you want to decide based on the remaining credit
 it should returns true or false
 keep it nil if you want it returns always true
 
-### 6.3. Selection of Next Tasks: `:selecting_function`
-
-additional function to choose the records to launch
-it should returns an array of IDs
-keep this parameter nil if you want to use the default algorithm
-
-### 6.4. Relaunching: `:relaunching_function`
-
-additional function to choose the records to retry
-keep this parameter nil if you want to use the default algorithm
-
-
-## 15. Scheduled Tasks
+### 8.3. Scheduled Tasks
 
 _(this feature is pending to develop)_
 
-## 16. Recurrent Tasks
+### 8.4. Multi-level Dispatching
 
 _(this feature is pending to develop)_
 
-## 17. Multi-level Dispatching
-
-_(this feature is pending to develop)_
-
-## 18. Setup Resources for Workers
+### 8.5. Setup Resources for Workers
 
 _(this feature is pending to develop)_
 
@@ -267,10 +310,16 @@ n = BlackStack::Pampa.add_nodes([{
 }])
 ```
 
-## 19. Inspiration
+### 8.6. Elastic Workers Assignation to a Job
+
+_(pending to write this section)_
+
+## 9. Inspiration
 
 - [https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox](https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox)
 
-## 20. Disclaimer
+## 10. Disclaimer
 
 The logo has been taken from [here](https://icons8.com/icon/ay4lYdOUt1Vd/geometric-figures).
+
+Use this library at your own risk.
