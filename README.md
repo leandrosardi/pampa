@@ -1,7 +1,7 @@
 
 ![Gem version](https://img.shields.io/gem/v/pampa) ![Gem downloads](https://img.shields.io/gem/dt/pampa)
 
-THIS LIBRARY IS STILL UNDER CONSTRUCTION
+**THIS LIBRARY IS STILL UNDER CONSTRUCTION**
 
 ![logo](./logo-100.png)
 
@@ -34,9 +34,10 @@ As a final words, **Pampa** supports [PostrgreSQL](https://www.postgresql.org) a
 5. [Reporting](#5-reporting)
 6. [Custom Dispatching Functions](#6-custom-dispatching-functions)
 7. [Custom Reporting Functions](#7-custom-reporting-function)
-8. [Further Work](#8-further-work)
-9. [Inspiration](#9-inspiration)
-10. [Disclaimer](#10-disclaimer)
+8. [Elastic Workers Assignation](#8-elastic-workers-assignation)
+9. [Further Work](#9-further-work)
+10. [Inspiration](#10-inspiration)
+11. [Disclaimer](#11-disclaimer)
 
 ## 1. Installation
 
@@ -249,11 +250,15 @@ keep this parameter nil if you want to use the default algorithm
 
 _(pending to write this section)_
 
-## 8. Further Work
+## 8. Elastic Workers Assignation
 
 _(pending to write this section)_
 
-### 8.1. Counting Pending Tasks: `:occupied_function`
+## 9. Further Work
+
+_(pending to write this section)_
+
+### 9.1. Counting Pending Tasks: `:occupied_function`
 
 _(this feature is pending to develop)_
 
@@ -269,7 +274,7 @@ additional function to decide how many records are pending for processing
 it should returns an integer
 keep it nil if you want to run the default function
 
-### 8.2. Selecting of Workers: `:allowing_function`
+### 9.2. Selecting of Workers: `:allowing_function`
 
 _(this feature is pending to develop)_
 
@@ -278,15 +283,15 @@ example: use this function when you want to decide based on the remaining credit
 it should returns true or false
 keep it nil if you want it returns always true
 
-### 8.3. Scheduled Tasks
+### 9.3. Scheduled Tasks
 
 _(this feature is pending to develop)_
 
-### 8.4. Multi-level Dispatching
+### 9.4. Multi-level Dispatching
 
 _(this feature is pending to develop)_
 
-### 8.5. Setup Resources for Workers
+### 9.5. Setup Resources for Workers
 
 _(this feature is pending to develop)_
 
@@ -312,15 +317,11 @@ n = BlackStack::Pampa.add_nodes([{
 }])
 ```
 
-### 8.6. Elastic Workers Assignation to a Job
-
-_(pending to write this section)_
-
-## 9. Inspiration
+## 10. Inspiration
 
 - [https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox](https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox)
 
-## 10. Disclaimer
+## 11. Disclaimer
 
 The logo has been taken from [here](https://icons8.com/icon/ay4lYdOUt1Vd/geometric-figures).
 
