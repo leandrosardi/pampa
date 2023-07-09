@@ -29,12 +29,14 @@ As a final words, **Pampa** supports [PostrgreSQL](https://www.postgresql.org) a
 
 1. [Installation](#1-installation)
 2. [Getting Started](#2-getting-started)
-    1. [Define a Cluster](#21-defining-clusters)
-    2. [Define a Job](#22-defining-jobs)
-    3. [Setup Database Connection](#23-setting-database-connection)
-    4. [Start Processing](#24-setting-output-log-file)
 3. [Running Workers](#3-running-workers)
 4. [Running Dispatcher](#4-running-dispatcher)
+5. [Reporting](#5-reporting)
+6. [Custom Dispatching Functions](#6-custom-dispatching-functions)
+7. [Custom Reporting Functions](#7-custom-reporting-function)
+8. [Further Work](#8-further-work)
+9. [Inspiration](#9-inspiration)
+10. [Disclaimer](#10-disclaimer)
 
 ## 1. Installation
 
