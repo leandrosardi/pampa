@@ -179,6 +179,8 @@ BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db
 
 ## 3. Running Workers
 
+_(pending to develop this method)_
+
 Run the code below on your `local` node in order to run your workers.
 
 The code below will start 1 process in background for each worker defined for the `local` node.
@@ -210,20 +212,50 @@ workers = BlackStack::Pampa.stop_worker(worker_name)
 
 ## 4. Running Dispatcher
 
+_(pending to develop this method)_
+
 The code below will start 1 process in background called **dispatcher**.
 
 The **dispatcher** will assign **tasks** to the nodes, and it will restart failed tasks too.
+
+You have to choose in which node you run the dispatcher.
 
 ```ruby
 require 'pampa'
 require 'config'
 node_name = 'local'
-workers = BlackStack::Pampa.run_dispatcher
+BlackStack::Pampa.run_dispatcher(node_name)
 ```
+
+You can also stop the dispatcher.
+
+```ruby
+require 'pampa'
+require 'config'
+BlackStack::Pampa.stop_dispatcher
+```
+
+Running a dispatcher in one node will stop the dispatcher in all other nodes.
 
 ## 5. Reporting
 
-_(pending to write this section)_
+_(pending to develop this method)_
+
+You can publish a website to show the stats of your jobs.
+
+```ruby
+require 'pampa'
+require 'config'
+BlackStack::Pampa.run_app
+```
+
+You can also run a CLI tool.
+
+```ruby
+require 'pampa'
+require 'config'
+BlackStack::Pampa.run_cli
+```
 
 ## 6. Custom Dispatching Functions
 
@@ -247,6 +279,8 @@ additional function to choose the records to retry
 keep this parameter nil if you want to use the default algorithm
 
 ## 7. Custom Reporting Function
+
+For showing stats in either the APP or the CLI, you can take the default values or write custom code-snippets.
 
 _(pending to write this section)_
 
