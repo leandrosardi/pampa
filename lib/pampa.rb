@@ -1,14 +1,11 @@
 require 'sequel'
 require 'blackstack-core'
 require 'blackstack-nodes'
-require 'blackstack-deployer'
 require 'simple_command_line_parser'
 require 'simple_cloud_logging'
 
 module BlackStack
     module Pampa
-        # activate this flag if you want to add pampa nodes to blackstack-deployer.
-        @@integrate_with_blackstack_deployer = false 
         # setup custom locations for config and worker files.
         @@config_filename = "config.rb"
         @@worker_filename = "worker.rb"
@@ -26,15 +23,6 @@ module BlackStack
         def self.now()
           tz = 'America/Argentina/Buenos_Aires' #DB["SELECT current_setting('TIMEZONE') AS tz"].first[:tz]
           DB["SELECT current_timestamp at TIME ZONE '#{tz}' AS now"].first[:now]
-        end
-
-        # @@integrate_with_blackstack_deployer
-        def self.integrate_with_blackstack_deployer()
-            @@integrate_with_blackstack_deployer
-        end
-
-        def self.set_integrate_with_blackstack_deployer(b)
-            @@integrate_with_blackstack_deployer = b
         end
 
         # @@config_filename
@@ -97,8 +85,6 @@ module BlackStack
         # add a node to the cluster.
         def self.add_node(h)
             @@nodes << BlackStack::Pampa::Node.new(h)
-            # add to deployer
-            BlackStack::Deployer.add_node(h) if @@integrate_with_blackstack_deployer
         end # def self.add_node(h)
 
         # add an array of nodes to the cluster.

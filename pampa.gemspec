@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pampa'
-  s.version     = '2.0.28'
-  s.date        = '2023-07-10'
+  s.version     = '2.0.29'
+  s.date        = '2023-08-18'
   s.summary     = "Ruby library for async & distributed computing, supporting dynamic reconfiguration, distribution of the computation jobs, error handling, job-retry and fault tolerance, and fast (non-direct) communication to ensure real-time capabilities."
   s.description = "Pampa is a Ruby library for async & distributing computing providing the following features:
 
@@ -32,7 +32,6 @@ Find documentation here: https://github.com/leandrosardi/pampa
   s.add_runtime_dependency 'sequel', '~> 5.56.0', '>= 5.56.0'
   s.add_runtime_dependency 'blackstack-core', '~> 1.2.3', '>= 1.2.3'
   s.add_runtime_dependency 'blackstack-nodes', '~> 1.2.11', '>= 1.2.11'
-  s.add_runtime_dependency 'blackstack-deployer', '~> 1.2.24', '>= 1.2.24'
   s.add_runtime_dependency 'simple_command_line_parser', '~> 1.1.2', '>= 1.1.2'
   s.add_runtime_dependency 'simple_cloud_logging', '~> 1.2.2', '>= 1.2.2'
 end
