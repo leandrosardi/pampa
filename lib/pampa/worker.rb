@@ -1,9 +1,15 @@
-# require the gem simple_cloud_logging for parsing command line parameters.
-require 'simple_command_line_parser'
-# require the gem simple_cloud_logging for writing logfiles.
-require 'simple_cloud_logging'
-# require the gem sequel for connecting to the database and handle ORM classes.
-require 'sequel'
+# MySaaS - Pampa Worker
+# Copyright (C) 2022 ExpandedVenture, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+#
+# Authors: Leandro Daniel Sardi (https://github.com/leandrosardi)
+#
+
+# load gem and connect database
+require 'pampa'
+DB = BlackStack::PostgreSQL::connect
 
 # parse command line parameters
 PARSER = BlackStack::SimpleCommandLineParser.new(
@@ -11,25 +17,13 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
     :configuration => [{
         :name=>'delay',
         :mandatory=>false,
-        :default=>30, 
+        :default=>10, 
         :description=>'Minimum delay between loops. A minimum of 10 seconds is recommended, in order to don\'t hard the database server. Default is 30 seconds.', 
         :type=>BlackStack::SimpleCommandLineParser::INT,
     }, {
-        :name=>'debug', 
-        :mandatory=>false,
-        :default=>false, 
-        :description=>'Activate this flag if you want to require the `pampa.rb` file from the same Pampa project folder, insetad to require the gem as usual.', 
-        :type=>BlackStack::SimpleCommandLineParser::BOOL,
-    }, {
-        :name=>'pampa', 
-        :mandatory=>false,
-        :default=>'./lib/pampa.rb', 
-        :description=>'Ruby file to require where `debug` is activated.', 
-        :type=>BlackStack::SimpleCommandLineParser::STRING,
-    }, {
         :name=>'config', 
         :mandatory=>false,
-        :default=>'./config.rb', 
+        :default=>'$HOME/code/freeleadsdata/micro.data/config.rb', 
         :description=>'Ruby file where is defined the connection-string and jobs.', 
         :type=>BlackStack::SimpleCommandLineParser::STRING,
     }, {
@@ -42,7 +36,7 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
 
 # creating logfile
 l = BlackStack::LocalLogger.new('worker.'+PARSER.value('id').to_s+'.log')
-  
+
 begin
     # log the paramers
     l.log 'STARTING WORKER'
@@ -52,6 +46,10 @@ begin
     # reference: https://github.com/leandrosardi/simple_command_line_parser/issues/7
     #['id','delay','debug','pampa','config'].each { |param| l.log param + ': ' + PARSER.value(param).to_s }
 
+    l.logs "Restarting browser... "
+    BlackStack::MicroData.reset_browser
+    l.done  
+    
     # require the pampa library
     l.logs 'Requiring pampa (debug='+(PARSER.value('debug') ? 'true' : 'false')+', pampa='+PARSER.value('pampa')+')... '
     require 'pampa' if !PARSER.value('debug')
@@ -62,6 +60,10 @@ begin
     l.logs 'Requiring config (config='+PARSER.value('config')+')... '
     require PARSER.value('config')
     l.done
+
+    #require 'micro.data/config'
+    DB = BlackStack::PostgreSQL::connect
+    require 'micro.data/lib/skeletons'
 
     # getting the worker object
     worker = BlackStack::Pampa.workers.select { |w| w.id == PARSER.value('id') }.first
@@ -74,33 +76,40 @@ begin
         start = Time.now()
         l.done        
 
-        BlackStack::Pampa.jobs.each { |job|
-            l.logs 'Processing job '+job.name+'... '
-            tasks = job.occupied_slots(worker)
-            l.logf tasks.size.to_s+' tasks in queue.'
+        begin
+            l.log ''
+            l.logs 'Starting cycle... '
 
-            tasks.each { |task|
-                l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' started... '
-                job.start(task)
-                l.done
-
+            BlackStack::Pampa.jobs.each { |job|
+                task = nil
                 begin
-                    l.logs 'Processing task '+task[job.field_primary_key.to_sym].to_s+'... '
-                    job.processing_function.call(task, l, job, worker)
-                    l.done
+                    l.logs 'Processing job '+job.name+'... '
+                    tasks = job.occupied_slots(worker)
+                    l.logf tasks.size.to_s+' tasks in queue.'
 
-                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' finished... '
-                    job.finish(task)
-                    l.done
-    
+                    tasks.each { |t|
+                        task = t
+                        
+                        l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' started... '
+                        job.start(task)
+                        l.done
+
+                        l.logs 'Processing task '+task[job.field_primary_key.to_sym].to_s+'... '
+                        job.processing_function.call(task, l, job, worker)
+                        l.done
+
+                        l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' finished... '
+                        job.finish(task)
+                        l.done
+                    }    
                 # note: this catches the CTRL+C signal.
                 # note: this catches the `kill` command, ONLY if it has not the `-9` option.
                 rescue SignalException, SystemExit, Interrupt => e
                     l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' interrumpted... '
                     job.finish(task, e)
                     l.done
-                    
-                    log.logf 'Bye!'
+                        
+                    l.logf 'Bye!'
 
                     raise e
 
@@ -112,7 +121,18 @@ begin
                     l.logf 'Error: '+e.to_console                
                 end        
             }
-        }
+
+            l.done
+
+        rescue => e
+            l.logf 'Error: '+e.message
+        end
+
+        # release resource
+        l.logs 'Releasing resources... '
+        GC.start
+        DB.disconnect
+        l.done
 
         # get the end loop time
         l.logs 'Ending loop... '

@@ -1,8 +1,6 @@
 
 ![Gem version](https://img.shields.io/gem/v/pampa) ![Gem downloads](https://img.shields.io/gem/dt/pampa)
 
-**THIS LIBRARY IS STILL UNDER CONSTRUCTION**
-
 ![logo](./logo-100.png)
 
 # Pampa - Async & Distributed Data Processing
@@ -61,9 +59,9 @@ Additionally, you may want to add the path `~` to your the environment varaible 
 export RUBYLIB=~
 ```
 
-### 2.1. Define Your Cluster
+## 3. Define Your Cluster
 
-As a first, you have to define a **cluster** of **workers**.
+As a first step, you have to define a **cluster** of **workers**.
 
 - A **cluster** is composed by one or more **nodes** (computers).
 
@@ -75,7 +73,7 @@ Add this code to your `config.rb` file:
 
 ```ruby
 # setup one or more nodes (computers) where to launch worker processes
-n = BlackStack::Pampa.add_nodes(
+BlackStack::Pampa.add_nodes(
   [
     {
       :name => 'local'
@@ -90,6 +88,8 @@ n = BlackStack::Pampa.add_nodes(
   ]
 )
 ```
+
+## 4. Define Your Nodes
 
 You can always add many **nodes** to your **cluster**:
 
@@ -120,7 +120,7 @@ n = BlackStack::Pampa.add_nodes(
 )
 ```
 
-### 2.2. Define Your Job
+## 5. Define a Job
 
 A **job** is a sequence of **tasks**. 
 
@@ -167,7 +167,13 @@ BlackStack::Pampa.add_job({
 })
 ```
 
-### 2.3. Setting Database Connection
+## 6. Setup Your Database
+
+Obviously, you have to create the table in your database.
+
+[Here is the PostgreSQL script you have to run the example in this tutorial](https://github.com/leandrosardi/pampa/blob/master/examples/demo.sql).
+
+## 7. Connect To Your Database
 
 In order to operate with the table `numbers`, you have to connect **Pampa** to your database.
 
@@ -177,85 +183,52 @@ Add this code to your `config.rb` file:
 BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
 ```
 
-## 3. Running Workers
+## 8. Running Dispatcher
 
-_(pending to develop this method)_
-
-Run the code below on your `local` node in order to run your workers.
-
-The code below will start 1 process in background for each worker defined for the `local` node.
-
-```ruby
-require 'pampa'
-require 'config'
-node_name = 'local'
-workers = BlackStack::Pampa.run_all_workers(node_name)
+```
+touch ~/dispatcher.rb
 ```
 
-If you want to run one worker only, use this code instead:
+**Step 2:** Write this code into your `worker.rb` file.
 
 ```ruby
-require 'pampa'
-require 'config'
-worker_name = 'local.1'
-workers = BlackStack::Pampa.run_worker(worker_name)
+require `pampa/dispatcher`
 ```
 
-If you want to stop a worker, use this code:
+**Step 3:** Run the dispatcher.
+
+Run the command below on your `local` node in order to run your worker.
+
+```
+ruby ~/dispatcher.rb
+```
+
+## 9. Running Workers
+
+**Step 1:** Create a new file `worker.rb` file.
+
+```
+touch ~/worker.rb
+```
+
+**Step 2:** Write this code into your `worker.rb` file.
 
 ```ruby
-require 'pampa'
-require 'config'
-worker_name = 'local.1'
-workers = BlackStack::Pampa.stop_worker(worker_name)
+require `pampa/worker`
 ```
 
-## 4. Running Dispatcher
+**Step 3:** Run a worker.
 
-_(pending to develop this method)_
+Run the command below on your `local` node in order to run your worker.
 
-The code below will start 1 process in background called **dispatcher**.
-
-The **dispatcher** will assign **tasks** to the nodes, and it will restart failed tasks too.
-
-You have to choose in which node you run the dispatcher.
-
-```ruby
-require 'pampa'
-require 'config'
-node_name = 'local'
-BlackStack::Pampa.run_dispatcher(node_name)
+```
+ruby ~/worker.rb id=localhost.1 config=~/config.rb
 ```
 
-You can also stop the dispatcher.
-
-```ruby
-require 'pampa'
-require 'config'
-BlackStack::Pampa.stop_dispatcher
-```
-
-Running a dispatcher in one node will stop the dispatcher in all other nodes.
 
 ## 5. Reporting
 
 _(pending to develop this method)_
-
-You can publish a website to show the stats of your jobs.
-
-```ruby
-require 'pampa'
-require 'config'
-BlackStack::Pampa.run_app
-```
-
-You can also run a CLI tool.
-
-```ruby
-require 'pampa'
-require 'config'
-BlackStack::Pampa.run_cli
-```
 
 ## 6. Custom Dispatching Functions
 
@@ -278,27 +251,39 @@ For example, you may want to monitor servers.
 additional function to choose the records to retry
 keep this parameter nil if you want to use the default algorithm
 
-## 7. Custom Reporting Function
-
-For showing stats in either the APP or the CLI, you can take the default values or write custom code-snippets.
+## 7. Elastic Workers Assignation
 
 _(pending to write this section)_
 
-## 8. Elastic Workers Assignation
+## Inspiration
 
-_(pending to write this section)_
+- [https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox](https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox)
 
-## 9. Further Work
+## Disclaimer
 
-_(pending to write this section)_
+The logo has been taken from [here](https://icons8.com/icon/ay4lYdOUt1Vd/geometric-figures).
 
-### 9.1. Counting Pending Tasks: `:occupied_function`
+Use this library at your own risk.
 
-_(this feature is pending to develop)_
+## Versioning
+
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the last [ruby gem](https://rubygems.org/gems/simple_command_line_parser). 
+
+## Authors
+
+* **Leandro Daniel Sardi** - *Initial work* - [LeandroSardi](https://github.com/leandrosardi)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Further Work
+
+### Counting Pending Tasks: `:occupied_function`
 
 The `:occupied_function` function returns an array with the pending **tasks** in queue for a **worker**.
 
-The default function returnss all the **tasks** with `:field_id` equal to the name of the worker, and the `:field_start_time` empty.
+The default function returns all the **tasks** with `:field_id` equal to the name of the worker, and the `:field_start_time` empty.
 
 You can setup a custom version of this function.
 
@@ -308,7 +293,7 @@ additional function to decide how many records are pending for processing
 it should returns an integer
 keep it nil if you want to run the default function
 
-### 9.2. Selecting of Workers: `:allowing_function`
+### Selecting of Workers: `:allowing_function`
 
 _(this feature is pending to develop)_
 
@@ -317,15 +302,15 @@ example: use this function when you want to decide based on the remaining credit
 it should returns true or false
 keep it nil if you want it returns always true
 
-### 9.3. Scheduled Tasks
+### Scheduled Tasks
 
 _(this feature is pending to develop)_
 
-### 9.4. Multi-level Dispatching
+### Multi-level Dispatching
 
 _(this feature is pending to develop)_
 
-### 9.5. Setup Resources for Workers
+### Setup Resources for Workers
 
 _(this feature is pending to develop)_
 
@@ -350,13 +335,3 @@ n = BlackStack::Pampa.add_nodes([{
 
 }])
 ```
-
-## 10. Inspiration
-
-- [https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox](https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox)
-
-## 11. Disclaimer
-
-The logo has been taken from [here](https://icons8.com/icon/ay4lYdOUt1Vd/geometric-figures).
-
-Use this library at your own risk.

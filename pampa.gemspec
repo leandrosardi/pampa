@@ -24,7 +24,8 @@ Find documentation here: https://github.com/leandrosardi/pampa
   s.authors     = ["Leandro Daniel Sardi"]
   s.email       = 'leandro.sardi@expandedventure.com'
   s.files       = [
-    'worker.rb',
+    'lib/pampa/worker.rb',
+    'lib/pampa/dispatcher.rb',
     'lib/pampa.rb',
   ]
   s.homepage    = 'https://rubygems.org/gems/pampa'
