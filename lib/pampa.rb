@@ -4,6 +4,7 @@ require 'blackstack-nodes'
 require 'simple_command_line_parser'
 require 'simple_cloud_logging'
 require 'colorize'
+require 'sinatra'
 
 module BlackStack
     module Pampa

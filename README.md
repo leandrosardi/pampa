@@ -432,20 +432,57 @@ BlackStack::Pampa.add_job({
 
 **Other Examples:**
 
-- Every 5 minutes you want to check if a website is online.
-- You want to periodically check 
+- Every 5 minutes you want to check if a list of websites are online.
+- You want to trace the CPU usage of a pool of servers.
+- You want to keep mirroring infromation between databases.
+
+
+## 12. Elastic Workers Assignation
+
+The **dispatcher** process not only assign **tasks** to **workers**, but it also **assign** and **unassign** **workers** to each **job**, depending on the number of **task** in **queue** for such a **job**.
+
+When you define a job, 
+
+- use the parameter `:max_pending_tasks` to tell the dispatcher when it should assign more workers for this job. If the number of pending task is higer than `:max_pending_tasks`, the dispatcher will scale the number of assigned workers;
+
+- but also use the parameter `:max_assigned_workers` to prevent your job to monopolize the entire pool of workers and get in the way of other jobs if its number of pending tasks raises so high;
+
+and finally,
+
+- you can use the `:filter_worker_id` to define a regular expession to filter the workers that may be assigned for your job. E.g.: Use `/.*/` to allow any worker to be assigned, or use `/\.1$/` to allow the first worker in each node to be assigned only.
+
+## 13. Reporting
+
+You can run a very simple webserver to show the status of each job.
+
+```
+touch ~/app.rb
+```
+
+**Step 2:** Write this code into your `worker.rb` file.
+
+```ruby
+require `pampa/app`
+```
+
+**Step 3:** Run the dispatcher.
+
+Run the command below on your `local` node in order to run your worker.
+
+```
+ruby ~/app.rb
+```
+
+**Parameters:**
+
+
+## 14. Extending Report
 
 
 
-## 7. Elastic Workers Assignation
-
-_(pending to write this section)_
-
-
-## 5. Reporting
+## 15. Reporting Snippets
 
 _(pending to develop this method)_
-
 
 ## Inspiration
 

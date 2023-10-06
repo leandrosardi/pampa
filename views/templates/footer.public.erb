@@ -1,0 +1,46 @@
+<%
+spec = Gem.loaded_specs['pampa']
+%>
+
+<footer id="main-footer">
+	<section class='row-fluid'>
+		<div class='span3'>
+			<img src='/core/images/logo-50.png' height='50px' title='<%=spec.name%>' style='opacity:0.25;' />
+		</div>
+		
+		<div class='span3 text-left'>
+			<b><i class='icon-question-sign'></i> Help</b><br/>
+			<i>(Pending)</i>
+			<!--
+			<a href='#' target='_window'>Any Link Here</a><br/>
+			-->
+		</div>
+
+		<div class='span3 text-left'>
+			<b><i class='icon-heart'></i> Docs</b><br/>
+			<i>(Pending)</i>
+			<!--
+			<a href='https://help.expandedventure.com/developers/getting-your-api-key' target='_window'>Generating Your API-KEY</a><br/>
+			<a href='https://help.expandedventure.com/developers/connectionsphere-api-1-5' target='_window'>API Specifications</a><br/>
+			<a href='https://help.expandedventure.com/developers/zapier-integrations' target='_window'>Zapier Integrations</a><br/>
+			-->
+		</div>
+	</section>
+		
+	<br/>
+	<br/>
+	<br/>
+
+	<b><%=spec.name%></b>, version <a href='<%spec.homepage%>' target='_window'><%=spec.version.to_s%></a><br/>
+	<a href="#" class="pull-right" id="on-top-link">
+		On Top&nbsp;<i class=" icon-chevron-up"></i>
+	</a>
+	<br/>
+	<%
+	if BlackStack.sandbox?
+	%>
+	<b>Sandbox Mode</b>
+	<%
+	end # if SANDBOX
+	%>
+</footer>
