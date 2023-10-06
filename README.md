@@ -188,6 +188,32 @@ Run the command below on your `local` node in order to run your worker.
 ruby ~/dispatcher.rb
 ```
 
+**Parameters:**
+
+1. **delay:** Dispatcher will run an infineet loop, assigning tasks to each worker at each iteration. You may set the delay in seconds between iterations:
+
+```
+ruby ~/dispatcher.rb delay=30
+```
+
+2. **config:** Be default, `dispatcher.rb` will `require 'config.rb'`. That is why you have to execute `export RUBYLIB=~/` before running the dispatcher. Though, you can define a custom location of the configuration file too.
+
+```
+ruby ~/dispatcher.rb config=~/foo/config.rb
+```
+
+3. **db:** Use this parameters to choose a database driver. The supported values are: `postgres`, `crdb`. By default, it is: `postgres`.
+
+```
+ruby ~/dispatcher.rb db=crdb
+```
+
+4. **log:** Use this parameter to indicate the process to write the log in the file `./dispatcher.log` or not. The default value is `yes`.
+
+```
+ruby ~/dispatcher.rb log=no
+```
+
 ## 9. Running Workers
 
 **Step 1:** Create a new file `worker.rb` file.
@@ -208,6 +234,32 @@ Run the command below on your `local` node in order to run your worker.
 
 ```
 ruby ~/worker.rb id=localhost.1
+```
+
+**Parameters:**
+
+1. **delay:** Dispatcher will run an infineet loop, assigning tasks to each worker at each iteration. You may set the delay in seconds between iterations:
+
+```
+ruby ~/worker.rb id=localhost.1 delay=30
+```
+
+2. **config:** Be default, `worker.rb` will `require 'config.rb'`. That is why you have to execute `export RUBYLIB=~/` before running the dispatcher. Though, you can define a custom location of the configuration file too.
+
+```
+ruby ~/worker.rb id=localhost.1 config=~/foo/config.rb
+```
+
+3. **db:** Use this parameters to choose a database driver. The supported values are: `postgres`, `crdb`. By default, it is: `postgres`.
+
+```
+ruby ~/worker.rb id=localhost.1 db=crdb
+```
+
+4. **log:** Use this parameter to indicate the process to write the log in the file `./worker.#{id}.log` or not. The default value is `yes`.
+
+```
+ruby ~/worker.rb id=localhost.1 log=no
 ```
 
 

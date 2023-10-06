@@ -30,11 +30,23 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
         :mandatory=>true, 
         :description=>'Write here a unique identifier for the worker.', 
         :type=>BlackStack::SimpleCommandLineParser::STRING,
+    }, {
+        :name=>'db',
+        :mandatory=>false,
+        :default=>'postgres', 
+        :description=>'Database driver. Values: postgres, crdb. Default: postgres.', 
+        :type=>BlackStack::SimpleCommandLineParser::STRING,
+    }, {
+        :name=>'log',
+        :mandatory=>false,
+        :default=>true, 
+        :description=>'If write log in the file ./worker.#{id}.log or not. Default: "yes"', 
+        :type=>BlackStack::SimpleCommandLineParser::BOOL,
     }]
 )
 
 # create logger
-l = BlackStack::LocalLogger.new("worker.#{PARSER.value('id')}.log")
+l = PARSER.value('log') ? BlackStack::LocalLogger.new("worker.#{PARSER.value('id')}.log") : BlackStack::BaseLogger.new(nil)
 
 # assign logger to pampa
 BlackStack::Pampa.set_logger(l)
@@ -45,13 +57,18 @@ require PARSER.value('config')
 l.logf 'done'.green
 
 l.logs 'Connecting to database... '
-DB = BlackStack::PostgreSQL::connect
+if PARSER.value('db') == 'postgres'
+    DB = BlackStack::PostgreSQL::connect
+elsif PARSER.value('db') == 'crdb'
+    DB = BlackStack::CockroachDB::connect
+else
+    raise 'Unknown database driver.'
+end
 l.logf 'done'.green
 
 begin    
     # getting the worker object
     l.logs 'Getting worker '+PARSER.value('id').blue+'... '
-binding.pry
     worker = BlackStack::Pampa.workers.select { |w| w.id == PARSER.value('id') }.first
     raise 'Worker '+PARSER.value('id')+' not found.' if worker.nil?
     l.logf 'done'.green
