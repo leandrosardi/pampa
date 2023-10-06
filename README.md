@@ -183,7 +183,7 @@ touch ~/dispatcher.rb
 **Step 2:** Write this code into your `dispatcher.rb` file.
 
 ```ruby
-require `pampa/dispatcher`
+require 'pampa/dispatcher'
 ```
 
 **Step 3:** Run the dispatcher.
@@ -234,7 +234,7 @@ touch ~/worker.rb
 **Step 2:** Write this code into your `worker.rb` file.
 
 ```ruby
-require `pampa/worker`
+require 'pampa/worker'
 ```
 
 **Step 3:** Run a worker.
@@ -462,7 +462,8 @@ touch ~/app.rb
 **Step 2:** Write this code into your `worker.rb` file.
 
 ```ruby
-require `pampa/app`
+require 'sinatra'
+require 'pampa/app'
 ```
 
 **Step 3:** Run the dispatcher.

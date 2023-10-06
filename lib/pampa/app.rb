@@ -7,7 +7,6 @@
 # Authors: Leandro Daniel Sardi (https://github.com/leandrosardi)
 #
 
-require 'sinatra'
 require 'pampa'
 require "rubygems"
 
@@ -100,8 +99,8 @@ set :protection, false
 
 # Setting the root of views and public folders in the `~/code` folder in order to have access to extensions.
 # reference: https://stackoverflow.com/questions/69028408/change-sinatra-views-directory-location
-set :root,  '../../'
-set :views, '../../'
+set :root,  '.'
+set :views, '.'
 
 # page not found redirection
 not_found do
