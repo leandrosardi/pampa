@@ -83,7 +83,7 @@ BlackStack::Pampa.add_nodes(
       :ssh_port => 22,
       :ssh_password => '<your ssh password>',
       # setup max number of worker processes
-      :max_workers => 1,
+      :max_workers => 2,
     },
   ]
 )
@@ -293,7 +293,7 @@ BlackStack::Pampa.add_job({
   :field_end_time => :odd_checking_end_time,
   :field_success => :odd_checking_success,
   :field_error_description => :odd_checking_error_description,
-  :filter_worker_id => /.*/,
+  :filter_worker_id => /\.1$/,
   :max_pending_tasks => 10, 
   :max_assigned_workers => 5, 
   :processing_function => Proc.new do |task, l, job, worker, *args|
@@ -315,7 +315,7 @@ BlackStack::Pampa.add_job({
       WHERE odd_checking_reservation_id IS NULL           -- record not reserved yet
       AND odd_checking_start_time IS NULL                 -- record is not pending to relaunch
       AND COALESCE(odd_checking_reservation_times,0) < 3  -- record didn't fail more than 3 times
-      ORDER BY number DESC                                -- I want to order by number reversely
+      ORDER BY value DESC                                -- I want to order by number reversely
       LIMIT #{n}                                          -- don't dispatch more than n records at the time
     "].all
   end,
@@ -327,12 +327,52 @@ BlackStack::Pampa.add_job({
 **Other Examples:**
 
 - You want to deliver emails of active email campaigns only (`active=true`).
-- 
+- You want to process orders in the order they have been created (`order by create_time`).
 
+```ruby
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'submit_odd_numbers',
+  :queue_size => 5, 
+  :max_job_duration_minutes => 15,  
+  :max_try_times => 3,
+  :table => :numbers, # Note, that we are sending a class object here
+  :field_primary_key => :value,
+  :field_id => :submit_odd_reservation_id,
+  :field_time => :submit_odd_reservation_time, 
+  :field_times => :submit_odd_reservation_times,
+  :field_start_time => :submit_odd_start_time,
+  :field_end_time => :submit_odd_end_time,
+  :field_success => :submit_odd_success,
+  :field_error_description => :submit_odd_error_description,
+  :filter_worker_id => /\.2/,
+  :max_pending_tasks => 10, 
+  :max_assigned_workers => 5, 
+  :processing_function => Proc.new do |task, l, job, worker, *args|
+    l.logs 'Checking if '+task[:value].to_s.blue+' is odd... '
+    if task[:value] % 2 == 0
+      task[:is_odd] = false
+      l.logf 'No.'.yellow
+    else
+      task[:is_odd] = true
+      l.logf 'Yes.'.green
+    end
+  end,
 
-
-
-
+  # write a snippet for selecting records to dispatch.
+  :selecting_function => Proc.new do |n, *args|
+    DB["
+      SELECT *
+      FROM numbers
+      WHERE odd_checking_reservation_id IS NULL           -- record not reserved yet
+      AND odd_checking_start_time IS NULL                 -- record is not pending to relaunch
+      AND COALESCE(odd_checking_reservation_times,0) < 3  -- record didn't fail more than 3 times
+      ORDER BY value DESC                                -- I want to order by number reversely
+      LIMIT #{n}                                          -- don't dispatch more than n records at the time
+    "].all
+  end,
+})
+```
 
 
 ## 5. Reporting
@@ -424,7 +464,7 @@ n = BlackStack::Pampa.add_nodes([{
     :ssh_port => 22,
     :ssh_private_key_file => './plank.pem',
     # setup max number of worker processes
-    :max_workers => 1,
+    :max_workers => 2,
     # setup max memory consumption per worker (MBs)
     :max_ram => 512, 
     # setup max CPU usage per worker (%)
