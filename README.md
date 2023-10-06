@@ -146,6 +146,7 @@ BlackStack::Pampa.add_job({
 ## 6. Setup Your Database
 
 Obviously, you have to create the table in your database.
+And you have to insert some seed data too.
 
 [Here is the PostgreSQL script you have to run the example in this tutorial](https://github.com/leandrosardi/pampa/blob/master/examples/demo.sql).
 
@@ -170,11 +171,15 @@ BlackStack::PostgreSQL::set_db_params({
 
 ## 8. Running Dispatcher
 
+The **dispatcher** will run an infinite loop, assigning tasks to each **worker** at each iteration of such a loop. 
+
+**Step 1:** Create your `dispatcher.rb` script-file.
+
 ```
 touch ~/dispatcher.rb
 ```
 
-**Step 2:** Write this code into your `worker.rb` file.
+**Step 2:** Write this code into your `dispatcher.rb` file.
 
 ```ruby
 require `pampa/dispatcher`
@@ -185,12 +190,13 @@ require `pampa/dispatcher`
 Run the command below on your `local` node in order to run your worker.
 
 ```
+export RUBYLIB=~/
 ruby ~/dispatcher.rb
 ```
 
 **Parameters:**
 
-1. **delay:** Dispatcher will run an infineet loop, assigning tasks to each worker at each iteration. You may set the delay in seconds between iterations:
+1. **delay:** You may set the delay in seconds between iterations:
 
 ```
 ruby ~/dispatcher.rb delay=30
@@ -216,6 +222,8 @@ ruby ~/dispatcher.rb log=no
 
 ## 9. Running Workers
 
+The **worker** will run an infineet loop, processing all assigned tasks at each iteration of such a loop. 
+
 **Step 1:** Create a new file `worker.rb` file.
 
 ```
@@ -233,12 +241,13 @@ require `pampa/worker`
 Run the command below on your `local` node in order to run your worker.
 
 ```
+export RUBYLIB=~/
 ruby ~/worker.rb id=localhost.1
 ```
 
 **Parameters:**
 
-1. **delay:** Dispatcher will run an infineet loop, assigning tasks to each worker at each iteration. You may set the delay in seconds between iterations:
+1. **delay:** You may set the delay in seconds between iterations:
 
 ```
 ruby ~/worker.rb id=localhost.1 delay=30
@@ -262,6 +271,69 @@ ruby ~/worker.rb id=localhost.1 db=crdb
 ruby ~/worker.rb id=localhost.1 log=no
 ```
 
+## 10. Selection Snippet
+
+You can re-write the default function used by the **dispatcher** to choose the records it will assign to the **workers**.
+
+**Example:** You want to dispatch the records in the table `numbers`, but sorted by `value` reversely.
+
+```ruby
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'search_odd_numbers',
+  :queue_size => 5, 
+  :max_job_duration_minutes => 15,  
+  :max_try_times => 3,
+  :table => :numbers, # Note, that we are sending a class object here
+  :field_primary_key => :value,
+  :field_id => :odd_checking_reservation_id,
+  :field_time => :odd_checking_reservation_time, 
+  :field_times => :odd_checking_reservation_times,
+  :field_start_time => :odd_checking_start_time,
+  :field_end_time => :odd_checking_end_time,
+  :field_success => :odd_checking_success,
+  :field_error_description => :odd_checking_error_description,
+  :filter_worker_id => /.*/,
+  :max_pending_tasks => 10, 
+  :max_assigned_workers => 5, 
+  :processing_function => Proc.new do |task, l, job, worker, *args|
+    l.logs 'Checking if '+task[:value].to_s.blue+' is odd... '
+    if task[:value] % 2 == 0
+      task[:is_odd] = false
+      l.logf 'No.'.yellow
+    else
+      task[:is_odd] = true
+      l.logf 'Yes.'.green
+    end
+  end,
+
+  # write a snippet for selecting records to dispatch.
+  :selecting_function => Proc.new do |n, *args|
+    DB["
+      SELECT *
+      FROM numbers
+      WHERE odd_checking_reservation_id IS NULL           -- record not reserved yet
+      AND odd_checking_start_time IS NULL                 -- record is not pending to relaunch
+      AND COALESCE(odd_checking_reservation_times,0) < 3  -- record didn't fail more than 3 times
+      ORDER BY number DESC                                -- I want to order by number reversely
+      LIMIT #{n}                                          -- don't dispatch more than n records at the time
+    "].all
+  end,
+})
+```
+
+**Example:** You define another **job** to submit processed numbers a server.
+
+**Other Examples:**
+
+- You want to deliver emails of active email campaigns only (`active=true`).
+- 
+
+
+
+
+
+
 
 ## 5. Reporting
 
@@ -271,14 +343,6 @@ _(pending to develop this method)_
 
 _(pending to write this section)_
 
-### 6.1. Selection of Next Tasks: `:selecting_function`
-
-You may want to processes records who meet with a condition.
-For example, you may want to download a CSV only after you have received a signal from your provider telling you the CSV is ready for download. 
-
-additional function to choose the records to launch
-it should returns an array of IDs
-keep this parameter nil if you want to use the default algorithm
 
 ### 6.2. Relaunching: `:relaunching_function`
 
