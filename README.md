@@ -207,7 +207,7 @@ require `pampa/worker`
 Run the command below on your `local` node in order to run your worker.
 
 ```
-ruby ~/worker.rb id=localhost.1 config=~/config.rb
+ruby ~/worker.rb id=localhost.1
 ```
 
 

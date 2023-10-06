@@ -8,8 +8,7 @@
 #
 
 # load gem and connect database
-require 'pampa'
-DB = BlackStack::PostgreSQL::connect
+require_relative '../pampa'
 
 # parse command line parameters
 PARSER = BlackStack::SimpleCommandLineParser.new(
@@ -21,10 +20,10 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
         :description=>'Minimum delay between loops. A minimum of 10 seconds is recommended, in order to don\'t hard the database server. Default is 30 seconds.', 
         :type=>BlackStack::SimpleCommandLineParser::INT,
     }, {
-        :name=>'config', 
+        :name=>'config',
         :mandatory=>false,
-        :default=>'$HOME/code/freeleadsdata/micro.data/config.rb', 
-        :description=>'Ruby file where is defined the connection-string and jobs.', 
+        :default=>'config.rb', 
+        :description=>'Configuration file. Default: config.', 
         :type=>BlackStack::SimpleCommandLineParser::STRING,
     }, {
         :name=>'id', 
@@ -34,40 +33,28 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
     }]
 )
 
-# creating logfile
-l = BlackStack::LocalLogger.new('worker.'+PARSER.value('id').to_s+'.log')
+# create logger
+l = BlackStack::LocalLogger.new("worker.#{PARSER.value('id')}.log")
 
-begin
-    # log the paramers
-    l.log 'STARTING WORKER'
+# assign logger to pampa
+BlackStack::Pampa.set_logger(l)
 
-    # show the parameters
-    # TODO: replace this hardocded array for method `PARSER.params`.
-    # reference: https://github.com/leandrosardi/simple_command_line_parser/issues/7
-    #['id','delay','debug','pampa','config'].each { |param| l.log param + ': ' + PARSER.value(param).to_s }
+# load config file
+l.logs "Loading #{PARSER.value('config').to_s.blue}... "
+require PARSER.value('config')
+l.logf 'done'.green
 
-    l.logs "Restarting browser... "
-    BlackStack::MicroData.reset_browser
-    l.done  
-    
-    # require the pampa library
-    l.logs 'Requiring pampa (debug='+(PARSER.value('debug') ? 'true' : 'false')+', pampa='+PARSER.value('pampa')+')... '
-    require 'pampa' if !PARSER.value('debug')
-    require PARSER.value('pampa') if PARSER.value('debug')
-    l.done
+l.logs 'Connecting to database... '
+DB = BlackStack::PostgreSQL::connect
+l.logf 'done'.green
 
-    # requiore the config.rb file where the jobs are defined.
-    l.logs 'Requiring config (config='+PARSER.value('config')+')... '
-    require PARSER.value('config')
-    l.done
-
-    #require 'micro.data/config'
-    DB = BlackStack::PostgreSQL::connect
-    require 'micro.data/lib/skeletons'
-
+begin    
     # getting the worker object
+    l.logs 'Getting worker '+PARSER.value('id').blue+'... '
+binding.pry
     worker = BlackStack::Pampa.workers.select { |w| w.id == PARSER.value('id') }.first
     raise 'Worker '+PARSER.value('id')+' not found.' if worker.nil?
+    l.logf 'done'.green
 
     # start the loop
     while true
@@ -83,42 +70,42 @@ begin
             BlackStack::Pampa.jobs.each { |job|
                 task = nil
                 begin
-                    l.logs 'Processing job '+job.name+'... '
+                    l.logs 'Processing job '+job.name.blue+'... '
                     tasks = job.occupied_slots(worker)
                     l.logf tasks.size.to_s+' tasks in queue.'
 
                     tasks.each { |t|
                         task = t
                         
-                        l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' started... '
+                        l.logs 'Flag task '+job.name.blue+'.'+task[job.field_primary_key.to_sym].to_s.blue+' started... '
                         job.start(task)
-                        l.done
+                        l.logf 'done'.green
 
-                        l.logs 'Processing task '+task[job.field_primary_key.to_sym].to_s+'... '
+                        l.logs 'Processing task '+task[job.field_primary_key.to_sym].to_s.blue+'... '
                         job.processing_function.call(task, l, job, worker)
-                        l.done
+                        l.logf 'done'.green
 
-                        l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' finished... '
+                        l.logs 'Flag task '+job.name.blue+'.'+task[job.field_primary_key.to_sym].to_s.blue+' finished... '
                         job.finish(task)
-                        l.done
+                        l.logf 'done'.green
                     }    
                 # note: this catches the CTRL+C signal.
                 # note: this catches the `kill` command, ONLY if it has not the `-9` option.
                 rescue SignalException, SystemExit, Interrupt => e
-                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' interrumpted... '
+                    l.logs 'Flag task '+job.name.blue+'.'+task[job.field_primary_key.to_sym].to_s.blue+' interrumpted... '
                     job.finish(task, e)
-                    l.done
+                    l.logf 'done'.green
                         
-                    l.logf 'Bye!'
+                    l.logf 'Bye!'.yellow
 
                     raise e
 
                 rescue => e
-                    l.logs 'Flag task '+job.name+'.'+task[job.field_primary_key.to_sym].to_s+' failed... '
+                    l.logs 'Flag task '+job.name.blue+'.'+task[job.field_primary_key.to_sym].to_s.blue+' failed... '
                     job.finish(task, e)
-                    l.done
+                    l.logf 'done'.green
 
-                    l.logf 'Error: '+e.to_console                
+                    l.logf "Error: #{e.to_console}".red                
                 end        
             }
 
@@ -132,18 +119,18 @@ begin
         l.logs 'Releasing resources... '
         GC.start
         DB.disconnect
-        l.done
+        l.logf 'done'.green
 
         # get the end loop time
         l.logs 'Ending loop... '
         finish = Time.now()
-        l.done
+        l.logf 'done'.green
             
         # get different in seconds between start and finish
         # if diff > 30 seconds
         l.logs 'Calculating loop duration... '
         diff = finish - start
-        l.logf 'done ('+diff.to_s+')'
+        l.logf 'done'.green + " (#{diff.to_s.blue})"
 
         if diff < PARSER.value('delay')
             # sleep for 30 seconds
@@ -151,17 +138,18 @@ begin
                 
             l.logs 'Sleeping for '+n.to_label+' seconds... '
             sleep n
-            l.done
+            l.logf 'done'.green
         else
-            l.log 'No sleeping. The loop took '+diff.to_label+' seconds.'
+            l.log 'No sleeping. The loop took '+diff.to_label.blue+' seconds.'
         end
     end # while true
 rescue SignalException, SystemExit, Interrupt
     # note: this catches the CTRL+C signal.
     # note: this catches the `kill` command, ONLY if it has not the `-9` option.
-    l.logf 'Process Interrumpted.'
+    l.logf 'Process Interrumpted.'.yellow
+    l.log 'Bye!'.yellow
 rescue => e
-    l.logf 'Fatal Error: '+e.to_console
+    l.logf "Fatal Error: #{e.to_console}".red
 rescue 
-    l.logf 'Unknown Fatal Error.'
+    l.logf 'Unknown Fatal Error.'.red
 end

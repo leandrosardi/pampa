@@ -10,9 +10,6 @@
 # load gem and connect database
 require_relative '../pampa'
 
-# load config file
-require 'config'
-
 # parse command line parameters
 PARSER = BlackStack::SimpleCommandLineParser.new(
     :description => 'This script starts an infinite loop. Each loop will look for a task to perform. Must be a delay between each loop.',
@@ -22,6 +19,12 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
         :default=>10, # 5 minutes 
         :description=>'Minimum delay between loops. A minimum of 10 seconds is recommended, in order to don\'t hard the database server. Default is 30 seconds.', 
         :type=>BlackStack::SimpleCommandLineParser::INT,
+    }, {
+        :name=>'config',
+        :mandatory=>false,
+        :default=>'config.rb', 
+        :description=>'Configuration file. Default: config.', 
+        :type=>BlackStack::SimpleCommandLineParser::STRING,
     }]
 )
 
@@ -30,6 +33,11 @@ l = BlackStack::LocalLogger.new('dispatcher.log')
 
 # assign logger to pampa
 BlackStack::Pampa.set_logger(l)
+
+# load config file
+l.logs "Loading #{PARSER.value('config').to_s.blue}... "
+require PARSER.value('config')
+l.logf 'done'.green
 
 l.logs 'Connecting to database... '
 DB = BlackStack::PostgreSQL::connect
