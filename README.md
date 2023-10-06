@@ -1,7 +1,7 @@
 
 ![Gem version](https://img.shields.io/gem/v/pampa) ![Gem downloads](https://img.shields.io/gem/dt/pampa)
 
-![logo](./logo-100.png)
+![logo](./public/core/images/logo-100.png)
 
 # Pampa - Async & Distributed Data Processing
 
