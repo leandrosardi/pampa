@@ -604,7 +604,7 @@ module BlackStack
               # dispatching n pending records
               i = 0
               if n>0
-                ids = self.selecting(n).map { |h| h[:id] }
+                ids = self.selecting(n).map { |h| h[self.field_primary_key.to_sym] }
 
                 i = ids.size
 
