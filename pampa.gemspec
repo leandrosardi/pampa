@@ -26,6 +26,7 @@ Find documentation here: https://github.com/leandrosardi/pampa
   s.files       = [
     'lib/pampa/worker.rb',
     'lib/pampa/dispatcher.rb',
+    'lib/pampa/app.rb',
     'lib/pampa.rb',
     'pampa.gemspec'
   ]

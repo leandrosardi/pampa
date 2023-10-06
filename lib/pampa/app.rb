@@ -100,7 +100,8 @@ set :protection, false
 # Setting the root of views and public folders in the `~/code` folder in order to have access to extensions.
 # reference: https://stackoverflow.com/questions/69028408/change-sinatra-views-directory-location
 set :root,  '.'
-set :views, '.'
+binding.pry
+set :views, Gem.loaded_specs['pampa'].full_gem_path
 
 # page not found redirection
 not_found do
@@ -189,5 +190,5 @@ get '/', :agent => /(.*)/ do
   redirect '/dashboard'
 end
 get '/dashboard', :agent => /(.*)/ do
-  erb :'views/dashboard', :layout => :'/views/layouts/public'
+  erb :'views/dashboard' #, :layout => :'/views/layouts/public'
 end
