@@ -139,6 +139,7 @@ BlackStack::Pampa.add_job({
       task[:is_odd] = true
       l.logf 'Yes.'.green
     end
+    DB[:numbers].where(:value=>task[:value]).update(:is_odd=>task[:is_odd])
   end
 })
 ```
@@ -293,7 +294,7 @@ BlackStack::Pampa.add_job({
   :field_end_time => :odd_checking_end_time,
   :field_success => :odd_checking_success,
   :field_error_description => :odd_checking_error_description,
-  :filter_worker_id => /\.1$/,
+  :filter_worker_id => /\.1$/, # only worker number 1 will receive tasks of this job.
   :max_pending_tasks => 10, 
   :max_assigned_workers => 5, 
   :processing_function => Proc.new do |task, l, job, worker, *args|
@@ -305,6 +306,7 @@ BlackStack::Pampa.add_job({
       task[:is_odd] = true
       l.logf 'Yes.'.green
     end
+    DB[:numbers].where(:value=>task[:value]).update(:is_odd=>task[:is_odd])
   end,
 
   # write a snippet for selecting records to dispatch.
@@ -349,14 +351,7 @@ BlackStack::Pampa.add_job({
   :max_pending_tasks => 10, 
   :max_assigned_workers => 5, 
   :processing_function => Proc.new do |task, l, job, worker, *args|
-    l.logs 'Checking if '+task[:value].to_s.blue+' is odd... '
-    if task[:value] % 2 == 0
-      task[:is_odd] = false
-      l.logf 'No.'.yellow
-    else
-      task[:is_odd] = true
-      l.logf 'Yes.'.green
-    end
+    # TODO: Run a post call here, to subit the record.
   end,
 
   # write a snippet for selecting records to dispatch.
@@ -364,10 +359,15 @@ BlackStack::Pampa.add_job({
     DB["
       SELECT *
       FROM numbers
-      WHERE odd_checking_reservation_id IS NULL           -- record not reserved yet
-      AND odd_checking_start_time IS NULL                 -- record is not pending to relaunch
-      AND COALESCE(odd_checking_reservation_times,0) < 3  -- record didn't fail more than 3 times
-      ORDER BY value DESC                                -- I want to order by number reversely
+      WHERE submit_odd_reservation_id IS NULL             -- record not reserved yet
+      AND submit_odd_start_time IS NULL                   -- record is not pending to relaunch
+      AND COALESCE(submit_odd_reservation_times,0) < 3    -- record didn't fail more than 3 times
+
+      AND odd_checking_end_time IS NOT NULL               -- record has been checked
+      AND COALESCE(odd_checking_success, FALSE) = TRUE    -- record has been checked successfully
+      AND COALESCE(id_odd, FALSE) = TRUE                  -- only submit odd values
+
+      ORDER BY odd_checking_end_time DESC                 -- submit records in the order they have been checked
       LIMIT #{n}                                          -- don't dispatch more than n records at the time
     "].all
   end,
