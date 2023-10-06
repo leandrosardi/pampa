@@ -8,8 +8,10 @@
 #
 
 # load gem and connect database
-require 'pampa'
-DB = BlackStack::PostgreSQL::connect
+require_relative '../pampa'
+
+# load config file
+require 'config'
 
 # parse command line parameters
 PARSER = BlackStack::SimpleCommandLineParser.new(
@@ -23,57 +25,64 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
     }]
 )
 
-# use the pampa logger
-l = BlackStack::Pampa.logger
+# create logger
+l = BlackStack::LocalLogger.new('dispatcher.log')
+
+# assign logger to pampa
+BlackStack::Pampa.set_logger(l)
+
+l.logs 'Connecting to database... '
+DB = BlackStack::PostgreSQL::connect
+l.logf 'done'.green
 
 # loop
 while true
     # get the start loop time
     l.logs 'Starting loop... '
     start = Time.now()
-    l.done        
+    l.logf 'done'.green        
 
     begin
         # assign workers to each job
         l.logs 'Stretching clusters... '
         BlackStack::Pampa.stretch
-        l.done
+        l.logf 'done'.green
 
         # relaunch expired tasks
         l.logs 'Relaunching expired tasks... '
         BlackStack::Pampa.relaunch
-        l.done
+        l.logf 'done'.green
 
         # dispatch tasks to each worker
         l.logs 'Dispatching tasks to workers... '
         BlackStack::Pampa.dispatch
-        l.done
+        l.logf 'done'.green
         
     # note: this catches the CTRL+C signal.
     # note: this catches the `kill` command, ONLY if it has not the `-9` option.
     rescue SignalException, SystemExit, Interrupt => e                    
-        l.logf 'Bye!'
+        l.logf 'Bye!'.yellow
         raise e
     rescue => e
-        l.logf 'Error: '+e.to_console                
+        l.logf "Error: #{e.to_console}".red                
     end
     
     # release resource
     l.logs 'Releasing resources... '
     GC.start
     DB.disconnect
-    l.done
+    l.logf 'done'.green
     
     # get the end loop time
     l.logs 'Ending loop... '
     finish = Time.now()
-    l.done
+    l.logf 'done'.green
             
     # get different in seconds between start and finish
     # if diff > 30 seconds
     l.logs 'Calculating loop duration... '
     diff = finish - start
-    l.logf 'done ('+diff.to_s+')'
+    l.logf 'done'.green + " (#{diff.to_s.blue})"
 
     if diff < PARSER.value('delay')
         # sleep for 30 seconds
@@ -81,7 +90,7 @@ while true
                 
         l.logs 'Sleeping for '+n.to_label+' seconds... '
         sleep n
-        l.done
+        l.logf 'done'.green
     else
         l.log 'No sleeping. The loop took '+diff.to_label+' seconds.'
     end

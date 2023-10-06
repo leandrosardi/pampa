@@ -83,38 +83,7 @@ BlackStack::Pampa.add_nodes(
       :ssh_port => 22,
       :ssh_password => '<your ssh password>',
       # setup max number of worker processes
-      :max_workers => 10,
-    },
-  ]
-)
-```
-
-## 4. Define Your Nodes
-
-You can always add many **nodes** to your **cluster**:
-
-```ruby
-# setup one or more nodes (computers) where to launch worker processes
-n = BlackStack::Pampa.add_nodes(
-  [
-    {
-      :name => 'n01'
-      # setup SSH connection parameters
-      :net_remote_ip => '192.168.1.1',  
-      :ssh_username => '<ssh username>', # example: root
-      :ssh_port => 22,
-      :ssh_password => '<ssh password>',
-      # setup max number of worker processes
-      :max_workers => 10,
-    }, {
-      :name => 'n02'
-      # setup SSH connection parameters
-      :net_remote_ip => '192.168.1.2',  
-      :ssh_username => '<ssh username>', # example: root
-      :ssh_port => 22,
-      :ssh_password => '<ssh password>',
-      # setup max number of worker processes
-      :max_workers => 10,
+      :max_workers => 1,
     },
   ]
 )
@@ -162,7 +131,14 @@ BlackStack::Pampa.add_job({
 
   # Function to execute for each task.
   :processing_function => Proc.new do |task, l, job, worker, *args|
-    # TODO: Code Me!
+    l.logs 'Checking if '+task[:value].to_s+' is odd... '
+    if task[:value] % 2 == 0
+      task[:is_odd] = false
+      l.logf 'No.'.red
+    else
+      task[:is_odd] = true
+      l.logf 'Yes.'.green
+    end
   end
 })
 ```
@@ -180,7 +156,16 @@ In order to operate with the table `numbers`, you have to connect **Pampa** to y
 Add this code to your `config.rb` file:
 
 ```ruby
-BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
+# DB ACCESS - KEEP IT SECRET
+# Connection string to the demo database: export DATABASE_URL='postgresql://demo:<ENTER-SQL-USER-PASSWORD>@free-tier14.aws-us-east-1.cockroachlabs.cloud:26257/mysaas?sslmode=verify-full&options=--cluster%3Dmysaas-demo-6448'
+BlackStack::PostgreSQL::set_db_params({ 
+  :db_url => '89.116.25.250', # n04
+  :db_port => '5432', 
+  :db_name => 'micro.data', 
+  :db_user => 'blackstack', 
+  :db_password => '*****',
+  :db_sslmode => 'disable',
+})
 ```
 
 ## 8. Running Dispatcher
@@ -323,7 +308,7 @@ n = BlackStack::Pampa.add_nodes([{
     :ssh_port => 22,
     :ssh_private_key_file => './plank.pem',
     # setup max number of worker processes
-    :max_workers => 10,
+    :max_workers => 1,
     # setup max memory consumption per worker (MBs)
     :max_ram => 512, 
     # setup max CPU usage per worker (%)

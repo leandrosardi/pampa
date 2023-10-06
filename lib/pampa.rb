@@ -1,19 +1,16 @@
-require 'sequel'
 require 'blackstack-core'
+require 'blackstack-db'
 require 'blackstack-nodes'
 require 'simple_command_line_parser'
 require 'simple_cloud_logging'
+require 'colorize'
 
 module BlackStack
     module Pampa
         # arrays of workers, nodes, and jobs.
         @@nodes = []
         @@jobs = []
-
-        def self.now()
-          tz = 'America/Argentina/Buenos_Aires' #DB["SELECT current_setting('TIMEZONE') AS tz"].first[:tz]
-          DB["SELECT current_timestamp at TIME ZONE '#{tz}' AS now"].first[:now]
-        end
+        @@logger = BlackStack::DummyLogger.new(nil)
 
         # add a node to the cluster.
         def self.add_node(h)
@@ -35,7 +32,12 @@ module BlackStack
         def self.nodes()
             @@nodes
         end
-        
+
+        # return the array of all workers, beloning all nodes.
+        def self.workers()
+          @@nodes.map { |node| node.workers }.flatten
+        end
+
         # add a job to the cluster.
         def self.add_job(h)
             @@jobs << BlackStack::Pampa::Job.new(h)
@@ -57,6 +59,15 @@ module BlackStack
           @@jobs
         end
 
+        # get and set logger
+        def self.logger()
+          @@logger
+        end
+
+        def self.set_logger(l)
+          @@logger = l
+        end
+
         # get attached and unassigned workers. 
         # assign and unassign workers to jobs.
         #
@@ -69,60 +80,59 @@ module BlackStack
           l = self.logger()
           # get the job this worker is working with
           BlackStack::Pampa.jobs.each { |job|
-            l.log ''
             l.logs "job #{job.name}... "
               # get attached and unassigned workers 
               l.logs "Getting attached and unassigned workers... "
               workers = BlackStack::Pampa.workers.select { |w| w.attached && w.assigned_job.nil? }
-              l.logf "done (#{workers.size.to_s})"
+              l.logf 'done'.green + " (#{workers.size.to_s.blue})"
               # get the workers that match the filter
               l.logs "Getting workers that match the filter... "
               workers = workers.select { |w| w.id =~ job.filter_worker_id }
-              l.logf "done (#{workers.size.to_s})"
+              l.logf "done".green + " (#{workers.size.to_s.blue})"
               # if theere are workers
               if workers.size > 0
                 l.logs("Gettting assigned workers... ") 
                 assigned = BlackStack::Pampa.workers.select { |worker| worker.attached && worker.assigned_job.to_s == job.name.to_s }
-                l.logf("done (#{assigned.size.to_s})")
+                l.logf "done ".green + " (#{assigned.size.to_s.blue})"
 
                 l.logs("Getting total pending (pending) tasks... ")
                 pendings = job.pending
-                l.logf("done (#{pendings.to_s})")
+                l.logf "done".green + " (#{pendings.to_s.blue})"
 
                 l.logs("0 pending tasks?.... ")
                 if pendings.size == 0
-                  l.logf("yes")
+                  l.logf "yes".green
 
                   l.logs("Unassigning all assigned workers... ")
                   assigned.each { |w|
                     l.logs("Unassigning worker... ")
                     w.assigned_job = nil
                     workers << w # add worker back to the list of unassigned
-                    l.logf "done (#{w.id})"
+                    l.logf "done".green + " (#{w.id.to_s.blue})"
                   }
                   l.done
                 else
-                  l.logf("no")
+                  l.logf "no".red
 
                   l.logs("Under :max_pending_tasks (#{job.max_pending_tasks}) and more than 1 assigned workers ?... ")
                   if pendings.size < job.max_pending_tasks && assigned.size > 1
-                    l.logf("yes")
+                    l.logf "yes".green
 
                     while assigned.size > 1
                       l.logs("Unassigning worker... ")
                       w = assigned.pop # TODO: find a worker with no pending tasks
                       w.assigned_job = nil
                       workers << w # add worker back to the array of unassigned workers
-                      l.logf "done (#{w.id})"
+                      l.logf "done".green + " (#{w.id.to_s.blue})"
                     end
                   else
-                    l.logf("no")
+                    l.logf "no".red
 
-                    l.logs("Over :max_assigned_workers (#{job.max_assigned_workers}) and more than 1 assigned workers?... ")
+                    l.logs("Over :max_assigned_workers (#{job.max_assigned_workers.to_s.blue}) and more than 1 assigned workers?... ")
                     if assigned.size >= job.max_assigned_workers && assigned.size > 1
-                      l.logf("yes")
+                      l.logf("yes".green)
                     else
-                      l.logf("no")
+                      l.logf("no".red)
 
                       i = assigned.size
                       while i < job.max_assigned_workers
@@ -130,11 +140,11 @@ module BlackStack
                         l.logs("Assigning worker... ")
                         w = workers.pop
                         if w.nil?
-                          l.logf("no more workers")
+                          l.logf("no more workers".yellow)
                           break
                         else
                           w.assigned_job = job.name.to_sym
-                          l.logf "done (#{w.id})"
+                          l.logf "done".green + " (#{w.id.to_s.blue})"
                         end
                       end # while i < job.max_assigned_workers
                     end # if assigned.size >= job.max_assigned_workers && assigned.size > 0
@@ -161,7 +171,7 @@ module BlackStack
             l.logs("job:#{job.name}... ")
               l.logs("Gettting tasks to relaunch (max #{n})... ")
               tasks = job.relaunching(n)
-              l.logf("done (#{tasks.size.to_s})")
+              l.logf("done".green + " (#{tasks.size.to_s.blue})")
 
               tasks.each { |task| 
                 l.logs("Relaunching task #{task[job.field_primary_key.to_sym]}... ")
@@ -187,17 +197,17 @@ module BlackStack
             BlackStack::Pampa.workers.each { |worker|
                 l.logs("worker:#{worker.id} (job:#{worker.assigned_job.to_s})... ")
                 if !worker.attached
-                  l.logf("detached")
+                  l.logf("detached".green)
                 else
                   if worker.assigned_job.nil?
-                    l.logf("unassigned")
+                    l.logf("unassigned".yellow)
                   else
                     # get the job this worker is assigned to
                     job = BlackStack::Pampa.jobs.select { |j| j.name.to_s == worker.assigned_job.to_s }.first
                     if job.nil?
-                      l.logf("job #{job.name} not found")
+                      l.logf("job #{job.name} not found".red)
                     else
-                      l.logf("done (#{job.run_dispatch(worker).to_s})")
+                      l.logf("done".green + " (#{job.run_dispatch(worker).to_s.blue})")
                     end
                   end
                 end
@@ -506,7 +516,7 @@ module BlackStack
               q = "
                 SELECT * 
                 FROM #{self.table.to_s} 
-                WHERE COALESCE(#{self.field_time.to_s}, '1900-01-01') < CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
+                WHERE COALESCE(#{self.field_time.to_s}, '1900-01-01') < CAST('#{now}' AS TIMESTAMP) - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
                 AND #{self.field_id.to_s} IS NOT NULL 
                 AND #{self.field_end_time.to_s} IS NULL
                 --AND COALESCE(#{self.field_times.to_s},0) < #{self.max_try_times.to_i}
@@ -551,7 +561,7 @@ module BlackStack
         
             def start(o)
               if self.starter_function.nil?
-                o[self.field_start_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
+                o[self.field_start_time.to_sym] = DB["SELECT CAST('#{now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_times.to_sym] = o[self.field_times.to_sym].to_i + 1
                 self.update(o)
               else
@@ -561,7 +571,7 @@ module BlackStack
         
             def finish(o, e=nil)
               if self.finisher_function.nil?
-                o[self.field_end_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
+                o[self.field_end_time.to_sym] = DB["SELECT CAST('#{now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_success.to_sym] = e.nil?
                 o[self.field_error_description.to_sym] = e.to_console if !e.nil? 
                 self.update(o)
@@ -618,7 +628,7 @@ module BlackStack
                   end
 
                   q += "
-                    #{self.field_time.to_s} = CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP)  
+                    #{self.field_time.to_s} = CAST('#{now}' AS TIMESTAMP)  
                     WHERE #{self.field_primary_key.to_s} IN ('#{ids.join("','")}')
                   "
 

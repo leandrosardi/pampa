@@ -30,9 +30,10 @@ Find documentation here: https://github.com/leandrosardi/pampa
   ]
   s.homepage    = 'https://rubygems.org/gems/pampa'
   s.license     = 'MIT'
-  s.add_runtime_dependency 'sequel', '~> 5.56.0', '>= 5.56.0'
-  s.add_runtime_dependency 'blackstack-core', '~> 1.2.3', '>= 1.2.3'
-  s.add_runtime_dependency 'blackstack-nodes', '~> 1.2.11', '>= 1.2.11'
+  s.add_runtime_dependency 'colorize', '~> 0.8.1', '>= 0.8.1'
+  s.add_runtime_dependency 'blackstack-core', '~> 1.2.15', '>= 1.2.15'
+  s.add_runtime_dependency 'blackstack-db', '~> 1.0.1', '>= 1.0.1'
+  s.add_runtime_dependency 'blackstack-nodes', '~> 1.2.12', '>= 1.2.12'
   s.add_runtime_dependency 'simple_command_line_parser', '~> 1.1.2', '>= 1.1.2'
   s.add_runtime_dependency 'simple_cloud_logging', '~> 1.2.2', '>= 1.2.2'
 end
