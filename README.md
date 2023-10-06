@@ -324,12 +324,7 @@ BlackStack::Pampa.add_job({
 })
 ```
 
-**Example:** You define another **job** to submit processed numbers a server.
-
-**Other Examples:**
-
-- You want to deliver emails of active email campaigns only (`active=true`).
-- You want to process orders in the order they have been created (`order by create_time`).
+**Example:** You define another **job** to submit the odd numbers to a server.
 
 ```ruby
 # define the job
@@ -339,6 +334,7 @@ BlackStack::Pampa.add_job({
   :max_job_duration_minutes => 15,  
   :max_try_times => 3,
   :table => :numbers, # Note, that we are sending a class object here
+
   :field_primary_key => :value,
   :field_id => :submit_odd_reservation_id,
   :field_time => :submit_odd_reservation_time, 
@@ -347,9 +343,12 @@ BlackStack::Pampa.add_job({
   :field_end_time => :submit_odd_end_time,
   :field_success => :submit_odd_success,
   :field_error_description => :submit_odd_error_description,
+  
   :filter_worker_id => /\.2/,
+  
   :max_pending_tasks => 10, 
   :max_assigned_workers => 5, 
+  
   :processing_function => Proc.new do |task, l, job, worker, *args|
     # TODO: Run a post call here, to subit the record.
   end,
@@ -363,8 +362,8 @@ BlackStack::Pampa.add_job({
       AND submit_odd_start_time IS NULL                   -- record is not pending to relaunch
       AND COALESCE(submit_odd_reservation_times,0) < 3    -- record didn't fail more than 3 times
 
-      AND odd_checking_end_time IS NOT NULL               -- record has been checked
-      AND COALESCE(odd_checking_success, FALSE) = TRUE    -- record has been checked successfully
+      AND odd_checking_end_time IS NOT NULL               -- record that have been checked
+      AND COALESCE(odd_checking_success, FALSE) = TRUE    -- record that have been checked successfully
       AND COALESCE(id_odd, FALSE) = TRUE                  -- only submit odd values
 
       ORDER BY odd_checking_end_time DESC                 -- submit records in the order they have been checked
@@ -374,27 +373,79 @@ BlackStack::Pampa.add_job({
 })
 ```
 
+**Other Examples:**
+
+- You may want to deliver emails of active email campaigns only (`active=true`).
+- You may want to process orders in the order they have been created (`order by create_time`).
+- You may want to add a delay of 1 day from the moment a new user signed up and he/she receives an email notification.
+
+## 11. Relaunching Snippet
+
+Use `:relaunching_function` to write your own snippet code that will choose the records you want to relaunch.
+
+**Example:** You may want to check if each number is still odd every 10 minutes, because you are afraid the laws of the universe have suddenly changed
+
+```ruby
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'search_odd_numbers',
+  :queue_size => 5, 
+  :max_job_duration_minutes => 15,  
+  :max_try_times => 3,
+  :table => :numbers, # Note, that we are sending a class object here
+  :field_primary_key => :value,
+  :field_id => :odd_checking_reservation_id,
+  :field_time => :odd_checking_reservation_time, 
+  :field_times => :odd_checking_reservation_times,
+  :field_start_time => :odd_checking_start_time,
+  :field_end_time => :odd_checking_end_time,
+  :field_success => :odd_checking_success,
+  :field_error_description => :odd_checking_error_description,
+  :filter_worker_id => /\.1$/, # only worker number 1 will receive tasks of this job.
+  :max_pending_tasks => 10, 
+  :max_assigned_workers => 5, 
+  :processing_function => Proc.new do |task, l, job, worker, *args|
+    l.logs 'Checking if '+task[:value].to_s.blue+' is odd... '
+    if task[:value] % 2 == 0
+      task[:is_odd] = false
+      l.logf 'No.'.yellow
+    else
+      task[:is_odd] = true
+      l.logf 'Yes.'.green
+    end
+    DB[:numbers].where(:value=>task[:value]).update(:is_odd=>task[:is_odd])
+  end,
+
+  # you want to check if each number is still odd every 10 minutes, 
+  # because you are afraid the laws of the universe have suddenly changed.
+  :relaunching_function => Proc.new do |n, *args|
+    DB["
+      SELECT *
+      FROM numbers
+      WHERE odd_checking_end_time IS NOT NULL                                           -- record that have been checked
+      AND odd_checking_end_time < CAST('#{now}' AS TIMESTAMP) - INTERVAL '10 MINUTES'   -- checked 10 minutes ago
+      LIMIT #{n}                                                                        -- don't relaunch more than n records at the time
+    "].all
+  end,
+})
+```
+
+**Other Examples:**
+
+- Every 5 minutes you want to check if a website is online.
+- You want to periodically check 
+
+
+
+## 7. Elastic Workers Assignation
+
+_(pending to write this section)_
+
 
 ## 5. Reporting
 
 _(pending to develop this method)_
 
-## 6. Custom Dispatching Functions
-
-_(pending to write this section)_
-
-
-### 6.2. Relaunching: `:relaunching_function`
-
-You may want to re-processes recurrently every few minutes or hours. 
-For example, you may want to monitor servers.
-
-additional function to choose the records to retry
-keep this parameter nil if you want to use the default algorithm
-
-## 7. Elastic Workers Assignation
-
-_(pending to write this section)_
 
 ## Inspiration
 
