@@ -1,1 +1,1 @@
-require_relative '../lib/pampa/worker'
+require 'pampa/worker'

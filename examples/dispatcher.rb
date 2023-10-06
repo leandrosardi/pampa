@@ -1,1 +1,1 @@
-require_relative '../lib/pampa/dispatcher'
+require 'pampa/dispatcher'

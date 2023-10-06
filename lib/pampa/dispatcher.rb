@@ -7,8 +7,7 @@
 # Authors: Leandro Daniel Sardi (https://github.com/leandrosardi)
 #
 
-# load gem and connect database
-require_relative '../pampa'
+require 'pampa'
 
 # parse command line parameters
 PARSER = BlackStack::SimpleCommandLineParser.new(
