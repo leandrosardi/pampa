@@ -245,7 +245,7 @@ BlackStack::Pampa.set_snippets({
   :dispatcher_function => Proc.new do |l, *args|
     l = BlackStack::DummyLogger.new(nil) if l.nil?
 
-    l.logs 'Loading nodel.. '
+    l.logs 'Loading model.. '
     require 'my-project/model'
     l.logf 'done'.green
   end,
