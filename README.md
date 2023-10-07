@@ -222,6 +222,21 @@ ruby ~/dispatcher.rb db=crdb
 ruby ~/dispatcher.rb log=no
 ```
 
+**Code Snippets:**
+
+You can define a code to be executed right after **dispatcher** connected to the database.
+
+Add a code like this in your `config.rb` file.
+
+```ruby
+# Pampa Code Snippets
+BlackStack::Pampa.set_snippets({
+  :dispatcher_function => Proc.new do |*args|
+    require 'my-project/model'
+  end,
+})
+```
+
 ## 8. Running Workers
 
 The **worker** will run an infineet loop, processing all assigned tasks at each iteration of such a loop. 
@@ -271,6 +286,21 @@ ruby ~/worker.rb id=localhost.1 db=crdb
 
 ```
 ruby ~/worker.rb id=localhost.1 log=no
+```
+
+**Code Snippets:**
+
+You can define a code to be executed right after **worker** connected to the database.
+
+Add a code like this in your `config.rb` file.
+
+```ruby
+# Pampa Code Snippets
+BlackStack::Pampa.set_snippets({
+  :dispatcher_function => Proc.new do |*args|
+    initialize_scraper()
+  end,
+})
 ```
 
 ## 9. Selection Snippet

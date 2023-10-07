@@ -62,7 +62,7 @@ l.logf 'done'.green
 
 # call dispatcher code snippet
 l.logs 'Calling dispatcher code snippet... '
-f = BlackStack::Pampa.dispatcher_function
+f = BlackStack::Pampa.dispatcher_function(l)
 if f 
     f.call
     l.logf 'done'.green

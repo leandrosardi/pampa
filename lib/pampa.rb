@@ -73,8 +73,8 @@ module BlackStack
 
 
         def self.set_snippets(h)
-          @@dispatcher_function = h[:dispatcher_function]
-          @@worker_function = h[:worker_function]
+          @@dispatcher_function = h[:dispatcher_function] if h.has_key?(:dispatcher_function)
+          @@worker_function = h[:worker_function] if h.has_key?(:worker_function)
         end
 
         def self.dispatcher_function

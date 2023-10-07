@@ -68,7 +68,7 @@ l.logf 'done'.green
 
 # call dispatcher code snippet
 l.logs 'Calling worker code snippet... '
-f = BlackStack::Pampa.worker_function
+f = BlackStack::Pampa.worker_function(l)
 if f 
     f.call
     l.logf 'done'.green
