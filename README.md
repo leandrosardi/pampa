@@ -231,8 +231,23 @@ Add a code like this in your `config.rb` file.
 ```ruby
 # Pampa Code Snippets
 BlackStack::Pampa.set_snippets({
-  :dispatcher_function => Proc.new do |*args|
+  :dispatcher_function => Proc.new do |l, *args|
     require 'my-project/model'
+  end,
+})
+```
+
+You can also pass a logger to the snippet.
+
+```ruby
+# Pampa Code Snippets
+BlackStack::Pampa.set_snippets({
+  :dispatcher_function => Proc.new do |l, *args|
+    l = BlackStack::DummyLogger.new(nil) if l.nil?
+
+    l.logs 'Loading nodel.. '
+    require 'my-project/model'
+    l.logf 'done'.green
   end,
 })
 ```
@@ -297,8 +312,23 @@ Add a code like this in your `config.rb` file.
 ```ruby
 # Pampa Code Snippets
 BlackStack::Pampa.set_snippets({
-  :dispatcher_function => Proc.new do |*args|
+  :dispatcher_function => Proc.new do |l, *args|
     initialize_scraper()
+  end,
+})
+```
+
+You can also pass a logger to the snippet.
+
+```ruby
+# Pampa Code Snippets
+BlackStack::Pampa.set_snippets({
+  :dispatcher_function => Proc.new do |l, *args|
+    l = BlackStack::DummyLogger.new(nil) if l.nil?
+
+    l.logs 'Initializing scraper... '
+    initialize_scraper()
+    l.logf 'done'.green
   end,
 })
 ```
