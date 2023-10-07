@@ -436,7 +436,6 @@ BlackStack::Pampa.add_job({
 - You want to trace the CPU usage of a pool of servers.
 - You want to keep mirroring infromation between databases.
 
-
 ## 12. Elastic Workers Assignation
 
 The **dispatcher** process not only assign **tasks** to **workers**, but it also **assign** and **unassign** **workers** to each **job**, depending on the number of **task** in **queue** for such a **job**.
@@ -453,31 +452,56 @@ and finally,
 
 ## 13. Reporting
 
-You can run a very simple webserver to show the status of each job.
+You can get the number of 
 
-```
-touch ~/app.rb
-```
+- total tasks,
+- completed task,
+- pending tasks,
+and
+- failed tasks;
 
-**Step 2:** Write this code into your `worker.rb` file.
+calling the methods shown below.
 
 ```ruby
-require 'sinatra'
-require 'pampa/app'
+j = BlackStack::Pampa.jobs.first
+
+p j.name
+
+p j.total.to_label
+p j.completed.to_label
+p j.pending.to_label
+p j.failed.to_label
 ```
-
-**Step 3:** Run the dispatcher.
-
-Run the command below on your `local` node in order to run your worker.
-
-```
-ruby ~/app.rb
-```
-
-**Parameters:**
-
 
 ## 14. Extending Report
+
+If you wrote snippets for either selecting or relaunching records, you may need to write sneeppets for the reporting methods too, in order to make their numbers congruent.
+
+```ruby
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'search_odd_numbers',
+
+  # ...
+
+  :total_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+  :completed_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+  :pending_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+  :completed_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+})
+```
 
 
 
