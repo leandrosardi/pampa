@@ -60,6 +60,16 @@ else
 end
 l.logf 'done'.green
 
+# call dispatcher code snippet
+l.logs 'Calling dispatcher code snippet... '
+f = BlackStack::Pampa.dispatcher_function
+if f 
+    f.call
+    l.logf 'done'.green
+else
+    l.logf 'no dispatcher code snippet found'.yellow
+end 
+
 # loop
 begin    
     while true

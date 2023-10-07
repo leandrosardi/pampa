@@ -12,6 +12,8 @@ module BlackStack
         @@nodes = []
         @@jobs = []
         @@logger = BlackStack::DummyLogger.new(nil)
+        @@dispatcher_function = nil
+        @@worker_function = nil
 
         # add a node to the cluster.
         def self.add_node(h)
@@ -69,6 +71,21 @@ module BlackStack
           @@logger = l
         end
 
+
+        def self.set_snippets(h)
+          @@dispatcher_function = h[:dispatcher_function]
+          @@worker_function = h[:worker_function]
+        end
+
+        def self.dispatcher_function
+          @@dispatcher_function
+        end
+
+        def self.worker_function
+          @@worker_function
+        end
+
+        
         # get attached and unassigned workers. 
         # assign and unassign workers to jobs.
         #

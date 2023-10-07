@@ -66,6 +66,16 @@ else
 end
 l.logf 'done'.green
 
+# call dispatcher code snippet
+l.logs 'Calling worker code snippet... '
+f = BlackStack::Pampa.worker_function
+if f 
+    f.call
+    l.logf 'done'.green
+else
+    l.logf 'no worker code snippet found'.yellow
+end 
+
 begin    
     # getting the worker object
     l.logs 'Getting worker '+PARSER.value('id').blue+'... '
