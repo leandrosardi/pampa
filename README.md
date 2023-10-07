@@ -23,19 +23,20 @@ and any other tasks that require a virtually infinite amount of CPU computing an
 
 As a final words, **Pampa** supports [PostrgreSQL](https://www.postgresql.org) and [CockroachDB](https://www.cockroachlabs.com), and it has been tested on [Ubuntu 18.04](https://releases.ubuntu.com/18.04/) and [Ruby 3.1.2p20](https://www.ruby-lang.org/en/news/2022/04/12/ruby-3-1-2-released/).
 
-## Outline
+**Outline**
 
 1. [Installation](#1-installation)
 2. [Getting Started](#2-getting-started)
-3. [Running Workers](#3-running-workers)
-4. [Running Dispatcher](#4-running-dispatcher)
-5. [Reporting](#5-reporting)
-6. [Custom Dispatching Functions](#6-custom-dispatching-functions)
-7. [Custom Reporting Functions](#7-custom-reporting-function)
-8. [Elastic Workers Assignation](#8-elastic-workers-assignation)
-9. [Further Work](#9-further-work)
-10. [Inspiration](#10-inspiration)
-11. [Disclaimer](#11-disclaimer)
+3. [Define Your Cluster](#3-define-your-cluster)
+4. [Define a Job](#4-define-a-job)
+5. [Setup Your Database](#5-setup-your-database)
+6. [Connect To Your Database](#6-connect-to-your-database)
+7. [Running Dispatcher](#7-running-dispatcher)
+8. [Running Workers](#8-running-workers)
+9. [Selection Snippet](#9-selection-snippet)
+10. [Relaunching Snippet](#10-relaunching-snippet)
+11. [Elastic Workers Assignation](#11-elastic-workers-assignation)
+12. [Reporting](#12-reporting)
 
 ## 1. Installation
 
@@ -89,7 +90,7 @@ BlackStack::Pampa.add_nodes(
 )
 ```
 
-## 5. Define a Job
+## 4. Define a Job
 
 A **job** is a sequence of **tasks**. 
 
@@ -144,14 +145,14 @@ BlackStack::Pampa.add_job({
 })
 ```
 
-## 6. Setup Your Database
+## 5. Setup Your Database
 
 Obviously, you have to create the table in your database.
 And you have to insert some seed data too.
 
 [Here is the PostgreSQL script you have to run the example in this tutorial](https://github.com/leandrosardi/pampa/blob/master/examples/demo.sql).
 
-## 7. Connect To Your Database
+## 6. Connect To Your Database
 
 In order to operate with the table `numbers`, you have to connect **Pampa** to your database.
 
@@ -170,7 +171,7 @@ BlackStack::PostgreSQL::set_db_params({
 })
 ```
 
-## 8. Running Dispatcher
+## 7. Running Dispatcher
 
 The **dispatcher** will run an infinite loop, assigning tasks to each **worker** at each iteration of such a loop. 
 
@@ -221,7 +222,7 @@ ruby ~/dispatcher.rb db=crdb
 ruby ~/dispatcher.rb log=no
 ```
 
-## 9. Running Workers
+## 8. Running Workers
 
 The **worker** will run an infineet loop, processing all assigned tasks at each iteration of such a loop. 
 
@@ -272,7 +273,7 @@ ruby ~/worker.rb id=localhost.1 db=crdb
 ruby ~/worker.rb id=localhost.1 log=no
 ```
 
-## 10. Selection Snippet
+## 9. Selection Snippet
 
 You can re-write the default function used by the **dispatcher** to choose the records it will assign to the **workers**.
 
@@ -379,7 +380,7 @@ BlackStack::Pampa.add_job({
 - You may want to process orders in the order they have been created (`order by create_time`).
 - You may want to add a delay of 1 day from the moment a new user signed up and he/she receives an email notification.
 
-## 11. Relaunching Snippet
+## 10. Relaunching Snippet
 
 Use `:relaunching_function` to write your own snippet code that will choose the records you want to relaunch.
 
@@ -436,7 +437,7 @@ BlackStack::Pampa.add_job({
 - You want to trace the CPU usage of a pool of servers.
 - You want to keep mirroring infromation between databases.
 
-## 12. Elastic Workers Assignation
+## 11. Elastic Workers Assignation
 
 The **dispatcher** process not only assign **tasks** to **workers**, but it also **assign** and **unassign** **workers** to each **job**, depending on the number of **task** in **queue** for such a **job**.
 
@@ -450,7 +451,7 @@ and finally,
 
 - you can use the `:filter_worker_id` to define a regular expession to filter the workers that may be assigned for your job. E.g.: Use `/.*/` to allow any worker to be assigned, or use `/\.1$/` to allow the first worker in each node to be assigned only.
 
-## 13. Reporting
+## 12. Reporting
 
 You can get the number of 
 
@@ -472,8 +473,6 @@ p j.completed.to_label
 p j.pending.to_label
 p j.failed.to_label
 ```
-
-## 14. Extending Report
 
 If you wrote snippets for either selecting or relaunching records, you may need to write sneeppets for the reporting methods too, in order to make their numbers congruent.
 
@@ -502,12 +501,6 @@ BlackStack::Pampa.add_job({
 
 })
 ```
-
-
-
-## 15. Reporting Snippets
-
-_(pending to develop this method)_
 
 ## Inspiration
 
