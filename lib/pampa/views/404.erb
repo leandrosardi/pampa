@@ -1,0 +1,29 @@
+<%
+spec = Gem.loaded_specs['pampa']
+message = "Sorry, this page isn't here or has moved: #{params[:url].to_s}"
+url = "/dashboard"
+%>
+
+<div class='top-right-logo-with-title'>
+	<a href='/'><img src="/core/images/logo-100.png" title="<%=spec.name%> Logo"></a><br/>
+</div>
+
+<br/>
+<br/>
+<br/>
+
+<section class='row-fluid'>
+	<div class='span6'>
+		<h1>Page not found (404).</h1>
+		<p>
+			<%=message.encode_html%>
+		</p>
+
+		<a href="/dashboard" class="btn btn-primary btn-large"><i class="icon-long-arrow-left"></i> Go Home</a>&nbsp;&nbsp;
+	</div>
+</section>
+
+
+<br/>
+<br/>
+<br/>

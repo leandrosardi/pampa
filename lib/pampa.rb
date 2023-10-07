@@ -1,86 +1,17 @@
-require 'sequel'
 require 'blackstack-core'
+require 'blackstack-db'
 require 'blackstack-nodes'
 require 'simple_command_line_parser'
 require 'simple_cloud_logging'
+require 'colorize'
+require 'sinatra'
 
 module BlackStack
     module Pampa
-        # setup custom locations for config and worker files.
-        @@config_filename = "config.rb"
-        @@worker_filename = "worker.rb"
-        # setu the directory where the worker.rb file will be lauched, and the log files will be stored.
-        @@working_directory = "$HOME/pampa"
         # arrays of workers, nodes, and jobs.
         @@nodes = []
         @@jobs = []
-        # logger configuration
-        @@log_filename = nil
         @@logger = BlackStack::DummyLogger.new(nil)
-        # Connection string to the database. Example: mysql2://user:password@localhost:3306/database
-        @@connection_string = nil
-
-        def self.now()
-          tz = 'America/Argentina/Buenos_Aires' #DB["SELECT current_setting('TIMEZONE') AS tz"].first[:tz]
-          DB["SELECT current_timestamp at TIME ZONE '#{tz}' AS now"].first[:now]
-        end
-
-        # @@config_filename
-        def self.config_filename()
-            @@config_filename
-        end
-
-        def self.set_config_filename(s)
-          @@config_filename = s
-        end
-
-        # @@worker_filename
-        def self.worker_filename()
-          @@worker_filename
-        end
-
-        def self.set_worker_filename(s)
-          @@worker_filename = s
-        end
-
-        ## @@working_directory
-        def self.working_directory()
-          @@working_directory
-        end
-
-        def self.set_working_directory(s)
-          @@working_directory = s
-        end
-
-        # define a filename for the log file.
-        def self.set_log_filename(s)
-            @@log_filename = s
-            @@logger = BlackStack::LocalLogger.new(s)
-        end
-
-        # return the logger.
-        def self.logger()
-            @@logger
-        end
-
-        def self.set_logger(l)
-          @@logger = l
-        end
-
-        # return the log filename.
-        def self.log_filename()
-            @@log_filename
-        end
-
-        # define a connection string to the database.
-        def self.set_connection_string(s)
-            @@connection_string = s
-        end
-
-        # return connection string to the database. Example: mysql2://user:password@localhost:3306/database
-        def self.connection_string()
-            @@connection_string
-        end
 
         # add a node to the cluster.
         def self.add_node(h)
@@ -105,7 +36,7 @@ module BlackStack
 
         # return the array of all workers, beloning all nodes.
         def self.workers()
-            @@nodes.map { |node| node.workers }.flatten
+          @@nodes.map { |node| node.workers }.flatten
         end
 
         # add a job to the cluster.
@@ -129,6 +60,15 @@ module BlackStack
           @@jobs
         end
 
+        # get and set logger
+        def self.logger()
+          @@logger
+        end
+
+        def self.set_logger(l)
+          @@logger = l
+        end
+
         # get attached and unassigned workers. 
         # assign and unassign workers to jobs.
         #
@@ -137,70 +77,63 @@ module BlackStack
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
         def self.stretch()
-          # validate: the connection string is not nil
-          raise "The connection string is nil" if @@connection_string.nil?
-          # validate: the connection string is not empty
-          raise "The connection string is empty" if @@connection_string.empty?
-          # validate: the connection string is not blank
-          raise "The connection string is blank" if @@connection_string.strip.empty?
           # getting logger
           l = self.logger()
           # get the job this worker is working with
           BlackStack::Pampa.jobs.each { |job|
-            l.log ''
             l.logs "job #{job.name}... "
               # get attached and unassigned workers 
               l.logs "Getting attached and unassigned workers... "
               workers = BlackStack::Pampa.workers.select { |w| w.attached && w.assigned_job.nil? }
-              l.logf "done (#{workers.size.to_s})"
+              l.logf 'done'.green + " (#{workers.size.to_s.blue})"
               # get the workers that match the filter
               l.logs "Getting workers that match the filter... "
               workers = workers.select { |w| w.id =~ job.filter_worker_id }
-              l.logf "done (#{workers.size.to_s})"
+              l.logf "done".green + " (#{workers.size.to_s.blue})"
               # if theere are workers
               if workers.size > 0
                 l.logs("Gettting assigned workers... ") 
                 assigned = BlackStack::Pampa.workers.select { |worker| worker.attached && worker.assigned_job.to_s == job.name.to_s }
-                l.logf("done (#{assigned.size.to_s})")
+                l.logf "done ".green + " (#{assigned.size.to_s.blue})"
 
                 l.logs("Getting total pending (pending) tasks... ")
                 pendings = job.pending
-                l.logf("done (#{pendings.to_s})")
+                l.logf "done".green + " (#{pendings.to_s.blue})"
 
                 l.logs("0 pending tasks?.... ")
                 if pendings.size == 0
-                  l.logf("yes")
+                  l.logf "yes".green
 
                   l.logs("Unassigning all assigned workers... ")
                   assigned.each { |w|
                     l.logs("Unassigning worker... ")
                     w.assigned_job = nil
                     workers << w # add worker back to the list of unassigned
-                    l.logf "done (#{w.id})"
+                    l.logf "done".green + " (#{w.id.to_s.blue})"
                   }
                   l.done
                 else
-                  l.logf("no")
+                  l.logf "no".red
 
                   l.logs("Under :max_pending_tasks (#{job.max_pending_tasks}) and more than 1 assigned workers ?... ")
                   if pendings.size < job.max_pending_tasks && assigned.size > 1
-                    l.logf("yes")
+                    l.logf "yes".green
 
                     while assigned.size > 1
                       l.logs("Unassigning worker... ")
                       w = assigned.pop # TODO: find a worker with no pending tasks
                       w.assigned_job = nil
                       workers << w # add worker back to the array of unassigned workers
-                      l.logf "done (#{w.id})"
+                      l.logf "done".green + " (#{w.id.to_s.blue})"
                     end
                   else
-                    l.logf("no")
+                    l.logf "no".red
 
-                    l.logs("Over :max_assigned_workers (#{job.max_assigned_workers}) and more than 1 assigned workers?... ")
+                    l.logs("Over :max_assigned_workers (#{job.max_assigned_workers.to_s.blue}) and more than 1 assigned workers?... ")
                     if assigned.size >= job.max_assigned_workers && assigned.size > 1
-                      l.logf("yes")
+                      l.logf("yes".green)
                     else
-                      l.logf("no")
+                      l.logf("no".red)
 
                       i = assigned.size
                       while i < job.max_assigned_workers
@@ -208,11 +141,11 @@ module BlackStack
                         l.logs("Assigning worker... ")
                         w = workers.pop
                         if w.nil?
-                          l.logf("no more workers")
+                          l.logf("no more workers".yellow)
                           break
                         else
                           w.assigned_job = job.name.to_sym
-                          l.logf "done (#{w.id})"
+                          l.logf "done".green + " (#{w.id.to_s.blue})"
                         end
                       end # while i < job.max_assigned_workers
                     end # if assigned.size >= job.max_assigned_workers && assigned.size > 0
@@ -221,7 +154,7 @@ module BlackStack
               end # if workers.size > 0
             l.done
           }
-        end
+        end # def self.stretch()
 
         # iterate the jobs.
         # for each job, get all the tasks to relaunch.
@@ -232,12 +165,6 @@ module BlackStack
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
         def self.relaunch(n=10000)
-          # validate: the connection string is not nil
-          raise "The connection string is nil" if @@connection_string.nil?
-          # validate: the connection string is not empty
-          raise "The connection string is empty" if @@connection_string.empty?
-          # validate: the connection string is not blank
-          raise "The connection string is blank" if @@connection_string.strip.empty?
           # getting logger
           l = self.logger()
           # iterate the workers
@@ -245,7 +172,7 @@ module BlackStack
             l.logs("job:#{job.name}... ")
               l.logs("Gettting tasks to relaunch (max #{n})... ")
               tasks = job.relaunching(n)
-              l.logf("done (#{tasks.size.to_s})")
+              l.logf("done".green + " (#{tasks.size.to_s.blue})")
 
               tasks.each { |task| 
                 l.logs("Relaunching task #{task[job.field_primary_key.to_sym]}... ")
@@ -255,7 +182,7 @@ module BlackStack
 
             l.done
           }
-        end
+        end # def self.relaunch(n=10000)
 
         # iterate the workers.
         # for each worker, iterate the job.
@@ -265,245 +192,28 @@ module BlackStack
         # - worker: relative path of the worker.rb file. Example: '../worker.rb'
         # 
         def self.dispatch()
-            # validate: the connection string is not nil
-            raise "The connection string is nil" if @@connection_string.nil?
-            # validate: the connection string is not empty
-            raise "The connection string is empty" if @@connection_string.empty?
-            # validate: the connection string is not blank
-            raise "The connection string is blank" if @@connection_string.strip.empty?
             # getting logger
             l = self.logger()
             # iterate the workers
             BlackStack::Pampa.workers.each { |worker|
                 l.logs("worker:#{worker.id} (job:#{worker.assigned_job.to_s})... ")
                 if !worker.attached
-                  l.logf("detached")
+                  l.logf("detached".green)
                 else
                   if worker.assigned_job.nil?
-                    l.logf("unassigned")
+                    l.logf("unassigned".yellow)
                   else
                     # get the job this worker is assigned to
                     job = BlackStack::Pampa.jobs.select { |j| j.name.to_s == worker.assigned_job.to_s }.first
                     if job.nil?
-                      l.logf("job #{job.name} not found")
+                      l.logf("job #{job.name} not found".red)
                     else
-                      l.logf("done (#{job.run_dispatch(worker).to_s})")
+                      l.logf("done".green + " (#{job.run_dispatch(worker).to_s.blue})")
                     end
                   end
                 end
             } # @@nodes.each do |node|            
-        end
-
-        # connect the nodes via ssh.
-        # kill all Ruby processes except this one.
-        # rename any existing folder $HOME/pampa to $HOME/pampa.<current timestamp>.
-        # create a new folder $HOME/pampa.
-        # build the file $HOME/pampa/config.rb in the remote node.
-        # copy the file $HOME/pampa/worker.rb to the remote node.
-        # run the number of workers specified in the configuration of the Pampa module.
-        # return an array with the IDs of the workers.
-        #
-        # Parameters:
-        # - config: relative path of the configuration file. Example: '../config.rb'
-        # - worker: relative path of the worker.rb file. Example: '../worker.rb'
-        # 
-        def self.deploy()
-            # validate: the connection string is not nil
-            raise "The connection string is nil" if @@connection_string.nil?
-            # validate: the connection string is not empty
-            raise "The connection string is empty" if @@connection_string.empty?
-            # validate: the connection string is not blank
-            raise "The connection string is blank" if @@connection_string.strip.empty?
-            # getting logger
-            l = self.logger()
-            # iterate the nodes
-            @@nodes.each { |node|
-                l.logs("node:#{node.name()}... ")
-                    # connect the node
-                    l.logs("Connecting... ")
-                    node.connect()
-                    l.done
-                    # kill all ruby processes except this one
-                    l.logs("Killing all Ruby processes except this one... ")
-                    node.kill_workers()
-                    l.done
-                    # rename any existing folder ~/code/pampa to ~/code/pampa.<current timestamp>.
-                    l.logs("Renaming old folder... ")
-                    node.exec("mv #{BlackStack::Pampa.working_directory} #{BlackStack::Pampa.working_directory}.#{Time.now().to_i.to_s}", false);
-                    l.done
-                    # create a new folder ~/code. - ignore if it already exists.
-                    l.logs("Creating new folder... ")
-                    node.exec("mkdir #{BlackStack::Pampa.working_directory}", false);
-                    l.done
-                    # build the file $HOME/pampa/config.rb in the remote node. - Be sure the BlackStack::Pampa.to_hash.to_s don't have single-quotes (') in the string.
-                    l.logs("Building config file... ")
-                    s = "echo \"#{File.read(config_filename)}\" > #{BlackStack::Pampa.working_directory}/#{BlackStack::Pampa.config_filename}"                    
-                    node.exec("#{s}", false);
-                    l.done
-                    # copy the file $HOME/pampa/worker.rb to the remote node. - Be sure the script don't have single-quotes (') in the string.
-                    l.logs("Copying worker file... ")
-                    s = "echo \"#{File.read(worker_filename)}\" > #{BlackStack::Pampa.working_directory}/#{BlackStack::Pampa.worker_filename}"
-                    node.exec("#{s}", false);
-                    l.done
-                    # run the number of workers specified in the configuration of the Pampa module.
-                    node.workers.each { |worker|
-                        # run the worker
-                        # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
-                        l.logs "Running worker #{worker.id}... "
-
-                        # write bash command to initialize bash file
-                        s = "echo \"
-                          export RUBYLIB=$HOME/code/mysaas;
-                          source $HOME/.profile; 
-                          source /usr/local/rvm/scripts/rvm;
-                          cd ~/code/mysaas; rvm install 3.1.2;
-                          rvm --default use 3.1.2;
-                          cd #{BlackStack::Pampa.working_directory}; 
-                          nohup ruby #{worker_filename} id=#{worker.id} config=#{self.config_filename} >/dev/null 2>&1 &
-                        \" > #{BlackStack::Pampa.working_directory}/#{worker.id}.sh"
-                        node.exec(s, false);
-
-                        #s = "nohup bash #{BlackStack::Pampa.working_directory}/worker.sh >/dev/null 2>&1 &"
-                        s = "bash #{BlackStack::Pampa.working_directory}/#{worker.id}.sh"
-                        node.exec(s, false);
-
-                        l.done
-                    }
-                    # disconnect the node
-                    l.logs("Disconnecting... ")
-                    node.disconnect()
-                    l.done
-                l.done
-            } # @@nodes.each do |node|            
-        end
-
-        # connect the nodes via ssh.
-        # kill all Ruby processes except this one.
-        # run the number of workers specified in the configuration of the Pampa module.
-        # return an array with the IDs of the workers.
-        # 
-        def self.start()
-          # validate: the connection string is not nil
-          raise "The connection string is nil" if @@connection_string.nil?
-          # validate: the connection string is not empty
-          raise "The connection string is empty" if @@connection_string.empty?
-          # validate: the connection string is not blank
-          raise "The connection string is blank" if @@connection_string.strip.empty?
-          # getting logger
-          l = self.logger()
-          # iterate the nodes
-          @@nodes.each { |node|
-              l.logs("node:#{node.name()}... ")
-                  # connect the node
-                  l.logs("Connecting... ")
-                  node.connect()
-                  l.done
-                  # kill all ruby processes except this one
-                  l.logs("Killing all Ruby processes except this one... ")
-                  node.kill_workers()
-                  l.done
-                  # run the number of workers specified in the configuration of the Pampa module.
-                  node.workers.each { |worker|
-                      # run the worker
-                      # add these parameters for debug: debug=yes pampa=~/code/pampa/lib/pampa.rb
-                      # run a bash command that sources the .profile file and runs the ruby script in the background, returning immediatelly.
-
-                      l.logs "Running worker #{worker.id}... "
-
-                      # write bash command to initialize bash file
-                      s = "echo \"
-                        export RUBYLIB=$HOME/code/mysaas;
-                        source $HOME/.profile; 
-                        source /usr/local/rvm/scripts/rvm;
-                        cd ~/code/mysaas; rvm install 3.1.2;
-                        rvm --default use 3.1.2;
-                        cd #{BlackStack::Pampa.working_directory}; 
-                        nohup ruby #{worker_filename} id=#{worker.id} config=#{self.config_filename} >/dev/null 2>&1 &
-                      \" > #{BlackStack::Pampa.working_directory}/#{worker.id}.sh"
-                      node.exec(s, false);
-                      s = "nohup bash #{BlackStack::Pampa.working_directory}/#{worker.id}.sh >/dev/null 2>&1 &"
-                      node.exec(s, false);
-
-                      l.done
-                  }
-                  # disconnect the node
-                  l.logs("Disconnecting... ")
-                  node.disconnect()
-                  l.done
-              l.done
-          } # @@nodes.each do |node|            
-        end
-
-        # connect the nodes via ssh.
-        # kill all Ruby processes except this one.
-        #
-        # Parameters:
-        # - config: relative path of the configuration file. Example: '../config.rb'
-        # 
-        def self.stop()
-            # validate: the connection string is not nil
-            raise "The connection string is nil" if @@connection_string.nil?
-            # validate: the connection string is not empty
-            raise "The connection string is empty" if @@connection_string.empty?
-            # validate: the connection string is not blank
-            raise "The connection string is blank" if @@connection_string.strip.empty?
-            # getting logger
-            l = self.logger()
-            # iterate the nodes
-            @@nodes.each { |node|
-                l.logs("node:#{node.name()}... ")
-                    # connect the node
-                    l.logs("Connecting... ")
-                    node.connect()
-                    l.done
-                    # kill all ruby processes except this one
-                    l.logs("Killing all Ruby processes except this one... ")
-                    node.kill_workers()
-                    l.done
-                    # disconnect the node
-                    l.logs("Disconnecting... ")
-                    node.disconnect()
-                    l.done
-                l.done
-            } # @@nodes.each do |node|            
-        end
-
-        # get the node by `node_name`
-        # connect the nodes via ssh.
-        # get how many minutes the worker wrote the log file
-        # close the connection
-        #
-        # DEPRECATED. Use `ps aux | grep "..."` to know if a process is running or not. 
-        #
-        def self.log_minutes_ago(node_name, worker_id)
-            # get the node
-            n = self.nodes.select { |n| n.name == node_name }.first
-            return nil if !n
-            # connect the node
-            n.connect()
-            # get the time of the last time the worker wrote the log file
-            code = "cat #{BlackStack::Pampa.working_directory}/worker.#{worker_id}.log | tail -n 1 | cut -b1-19"
-            s = n.exec(code, false).to_s.strip
-            # run bash command to get the difference in minutes beteen now and the last time the worker wrote the log file
-            s = n.exec("echo \"$(($(date +%s) - $(date -d '#{s}' +%s))) / 60\" | bc", false).to_s.strip
-            # disconnect the node
-            n.disconnect
-            # return the number of minutes
-            s
-        end # log_minutes_ago
-
-        # get the node usage of CPU, RAM, DISK, and NETWORK
-        # return a hash with the usage of CPU, RAM, DISK, and NETWORK
-        #
-        # sudo apt install sysstat
-        #
-        def self.node_usage(node_name)
-            ret = {}
-            # get the node
-            n = self.nodes.select { |n| n.name == node_name }.first
-            return nil if !n
-            n.usage
-        end # node_usage
+        end # def self.dispatch()
 
         # stub worker class
         class Worker
@@ -536,10 +246,6 @@ module BlackStack
             # detach worker to get dispatcher working with it
             def detach()
                 self.attached = false
-            end
-            # get the latest n lines of the log of this worker
-            def tail(n=10)
-              self.node.tail("#{BlackStack::Pampa.working_directory}/worker.#{self.id}.log", n)
             end
         end
 
@@ -811,7 +517,7 @@ module BlackStack
               q = "
                 SELECT * 
                 FROM #{self.table.to_s} 
-                WHERE COALESCE(#{self.field_time.to_s}, '1900-01-01') < CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
+                WHERE COALESCE(#{self.field_time.to_s}, '1900-01-01') < CAST('#{now}' AS TIMESTAMP) - INTERVAL '#{self.max_job_duration_minutes.to_i} minutes' 
                 AND #{self.field_id.to_s} IS NOT NULL 
                 AND #{self.field_end_time.to_s} IS NULL
                 --AND COALESCE(#{self.field_times.to_s},0) < #{self.max_try_times.to_i}
@@ -856,7 +562,7 @@ module BlackStack
         
             def start(o)
               if self.starter_function.nil?
-                o[self.field_start_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
+                o[self.field_start_time.to_sym] = DB["SELECT CAST('#{now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_start_time.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_times.to_sym] = o[self.field_times.to_sym].to_i + 1
                 self.update(o)
               else
@@ -866,7 +572,7 @@ module BlackStack
         
             def finish(o, e=nil)
               if self.finisher_function.nil?
-                o[self.field_end_time.to_sym] = DB["SELECT CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
+                o[self.field_end_time.to_sym] = DB["SELECT CAST('#{now}' AS TIMESTAMP) AS dt"].first[:dt] if !self.field_end_time.nil? && e.nil? # IMPORTANT: use DB location to get current time.
                 o[self.field_success.to_sym] = e.nil?
                 o[self.field_error_description.to_sym] = e.to_console if !e.nil? 
                 self.update(o)
@@ -899,7 +605,7 @@ module BlackStack
               # dispatching n pending records
               i = 0
               if n>0
-                ids = self.selecting(n).map { |h| h[:id] }
+                ids = self.selecting(n).map { |h| h[self.field_primary_key.to_sym] }
 
                 i = ids.size
 
@@ -923,7 +629,7 @@ module BlackStack
                   end
 
                   q += "
-                    #{self.field_time.to_s} = CAST('#{BlackStack::Pampa.now}' AS TIMESTAMP)  
+                    #{self.field_time.to_s} = CAST('#{now}' AS TIMESTAMP)  
                     WHERE #{self.field_primary_key.to_s} IN ('#{ids.join("','")}')
                   "
 
@@ -1006,55 +712,7 @@ module BlackStack
               else
                 return self.failed_function.call
               end
-            end # def falsed
-
-            # reporting method: timeline
-            # Return an array of hashes with the number of successfull processed taasks in the last period.
-            # The period is defined by the `scale_unit` and `scale_points` parameters.
-            # The `scale_unit` can be `minutes`, `hours`, `days`, `weeks`, `months`, `years`.
-            # The `scale_points` is the number of `scale_unit` to be reported, and it must be an integer higer than 0.
-            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show`+.
-            def timeline(scale_unit='minutes', scale_points=60)
-              j = self
-              a = []
-              # validate: The period is defined by the `scale_unit` and `scale_points` parameters.
-              if !['minutes', 'hours', 'days', 'weeks', 'months', 'years'].include?(scale_unit)
-                raise "Invalid scale_unit: #{scale_unit}"
-              end
-              # validate: The `scale_points` is the number of `scale_unit` to be reported, and it must be an integer higer than 0.
-              if !scale_points.is_a?(Integer) || scale_points<=0
-                raise "Invalid scale_points: #{scale_points}"
-              end
-              # generate report
-              point = 0
-              while point<scale_points
-                point += 1
-                q = "
-                  SELECT COUNT(*) AS n
-                  FROM #{j.table.to_s}
-                  WHERE COALESCE(#{j.field_success.to_s},false)=true
-                  AND #{j.field_time.to_s} >= CAST('#{BlackStack::Pampa.now - point.send(scale_unit)}' AS TIMESTAMP)
-                  AND #{j.field_time.to_s} < CAST('#{BlackStack::Pampa.now - (point-1).send(scale_unit)}' AS TIMESTAMP)
-                "
-                a << { :time => BlackStack::Pampa.now - (point-1).send(scale_unit), :n => DB[q].first[:n].to_i }
-              end # while point<scale_points
-              # return
-              a
-            end # def timeline
-
-            # reporting method: error_descriptions
-            # return an array of hashes { :id, :error_description } with the tasks that have an the success flag in false, error description.
-            # if the numbr if running tasks is higher than `max_tasks_to_show` then it returns `max_tasks_to_show` errors.
-            def error_descriptions(max_tasks_to_show=25)
-                j = self
-                q = "
-                    SELECT #{j.field_primary_key.to_s} as id, #{j.field_error_description.to_s} as description 
-                    FROM #{j.table.to_s} 
-                    WHERE COALESCE(#{j.field_success.to_s},true)=false
-                    LIMIT #{max_tasks_to_show}
-                "
-                DB[q].all
-            end
+            end # def failed
         end # class Job
     end # module Pampa
 end # module BlackStack

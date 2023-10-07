@@ -1,9 +1,7 @@
 
 ![Gem version](https://img.shields.io/gem/v/pampa) ![Gem downloads](https://img.shields.io/gem/dt/pampa)
 
-**THIS LIBRARY IS STILL UNDER CONSTRUCTION**
-
-![logo](./logo-100.png)
+![logo](./public/core/images/logo-100.png)
 
 # Pampa - Async & Distributed Data Processing
 
@@ -25,19 +23,20 @@ and any other tasks that require a virtually infinite amount of CPU computing an
 
 As a final words, **Pampa** supports [PostrgreSQL](https://www.postgresql.org) and [CockroachDB](https://www.cockroachlabs.com), and it has been tested on [Ubuntu 18.04](https://releases.ubuntu.com/18.04/) and [Ruby 3.1.2p20](https://www.ruby-lang.org/en/news/2022/04/12/ruby-3-1-2-released/).
 
-## Outline
+**Outline**
 
 1. [Installation](#1-installation)
 2. [Getting Started](#2-getting-started)
-3. [Running Workers](#3-running-workers)
-4. [Running Dispatcher](#4-running-dispatcher)
-5. [Reporting](#5-reporting)
-6. [Custom Dispatching Functions](#6-custom-dispatching-functions)
-7. [Custom Reporting Functions](#7-custom-reporting-function)
-8. [Elastic Workers Assignation](#8-elastic-workers-assignation)
-9. [Further Work](#9-further-work)
-10. [Inspiration](#10-inspiration)
-11. [Disclaimer](#11-disclaimer)
+3. [Define Your Cluster](#3-define-your-cluster)
+4. [Define a Job](#4-define-a-job)
+5. [Setup Your Database](#5-setup-your-database)
+6. [Connect To Your Database](#6-connect-to-your-database)
+7. [Running Dispatcher](#7-running-dispatcher)
+8. [Running Workers](#8-running-workers)
+9. [Selection Snippet](#9-selection-snippet)
+10. [Relaunching Snippet](#10-relaunching-snippet)
+11. [Elastic Workers Assignation](#11-elastic-workers-assignation)
+12. [Reporting](#12-reporting)
 
 ## 1. Installation
 
@@ -61,9 +60,9 @@ Additionally, you may want to add the path `~` to your the environment varaible 
 export RUBYLIB=~
 ```
 
-### 2.1. Define Your Cluster
+## 3. Define Your Cluster
 
-As a first, you have to define a **cluster** of **workers**.
+As a first step, you have to define a **cluster** of **workers**.
 
 - A **cluster** is composed by one or more **nodes** (computers).
 
@@ -75,7 +74,7 @@ Add this code to your `config.rb` file:
 
 ```ruby
 # setup one or more nodes (computers) where to launch worker processes
-n = BlackStack::Pampa.add_nodes(
+BlackStack::Pampa.add_nodes(
   [
     {
       :name => 'local'
@@ -85,42 +84,13 @@ n = BlackStack::Pampa.add_nodes(
       :ssh_port => 22,
       :ssh_password => '<your ssh password>',
       # setup max number of worker processes
-      :max_workers => 10,
+      :max_workers => 2,
     },
   ]
 )
 ```
 
-You can always add many **nodes** to your **cluster**:
-
-```ruby
-# setup one or more nodes (computers) where to launch worker processes
-n = BlackStack::Pampa.add_nodes(
-  [
-    {
-      :name => 'n01'
-      # setup SSH connection parameters
-      :net_remote_ip => '192.168.1.1',  
-      :ssh_username => '<ssh username>', # example: root
-      :ssh_port => 22,
-      :ssh_password => '<ssh password>',
-      # setup max number of worker processes
-      :max_workers => 10,
-    }, {
-      :name => 'n02'
-      # setup SSH connection parameters
-      :net_remote_ip => '192.168.1.2',  
-      :ssh_username => '<ssh username>', # example: root
-      :ssh_port => 22,
-      :ssh_password => '<ssh password>',
-      # setup max number of worker processes
-      :max_workers => 10,
-    },
-  ]
-)
-```
-
-### 2.2. Define Your Job
+## 4. Define a Job
 
 A **job** is a sequence of **tasks**. 
 
@@ -162,143 +132,405 @@ BlackStack::Pampa.add_job({
 
   # Function to execute for each task.
   :processing_function => Proc.new do |task, l, job, worker, *args|
-    # TODO: Code Me!
+    l.logs 'Checking if '+task[:value].to_s+' is odd... '
+    if task[:value] % 2 == 0
+      task[:is_odd] = false
+      l.logf 'No.'.red
+    else
+      task[:is_odd] = true
+      l.logf 'Yes.'.green
+    end
+    DB[:numbers].where(:value=>task[:value]).update(:is_odd=>task[:is_odd])
   end
 })
 ```
 
-### 2.3. Setting Database Connection
+## 5. Setup Your Database
+
+Obviously, you have to create the table in your database.
+And you have to insert some seed data too.
+
+[Here is the PostgreSQL script you have to run the example in this tutorial](https://github.com/leandrosardi/pampa/blob/master/examples/demo.sql).
+
+## 6. Connect To Your Database
 
 In order to operate with the table `numbers`, you have to connect **Pampa** to your database.
 
 Add this code to your `config.rb` file:
 
 ```ruby
-BlackStack::Pampa.set_connection_string("postgresql://127.0.0.1:26257@db_user:db_pass/blackstack")
+# DB ACCESS - KEEP IT SECRET
+# Connection string to the demo database: export DATABASE_URL='postgresql://demo:<ENTER-SQL-USER-PASSWORD>@free-tier14.aws-us-east-1.cockroachlabs.cloud:26257/mysaas?sslmode=verify-full&options=--cluster%3Dmysaas-demo-6448'
+BlackStack::PostgreSQL::set_db_params({ 
+  :db_url => '89.116.25.250', # n04
+  :db_port => '5432', 
+  :db_name => 'micro.data', 
+  :db_user => 'blackstack', 
+  :db_password => '*****',
+  :db_sslmode => 'disable',
+})
 ```
 
-## 3. Running Workers
+## 7. Running Dispatcher
 
-_(pending to develop this method)_
+The **dispatcher** will run an infinite loop, assigning tasks to each **worker** at each iteration of such a loop. 
 
-Run the code below on your `local` node in order to run your workers.
+**Step 1:** Create your `dispatcher.rb` script-file.
 
-The code below will start 1 process in background for each worker defined for the `local` node.
+```
+touch ~/dispatcher.rb
+```
+
+**Step 2:** Write this code into your `dispatcher.rb` file.
 
 ```ruby
-require 'pampa'
-require 'config'
-node_name = 'local'
-workers = BlackStack::Pampa.run_all_workers(node_name)
+require 'pampa/dispatcher'
 ```
 
-If you want to run one worker only, use this code instead:
+**Step 3:** Run the dispatcher.
+
+Run the command below on your `local` node in order to run your worker.
+
+```
+export RUBYLIB=~/
+ruby ~/dispatcher.rb
+```
+
+**Parameters:**
+
+1. **delay:** You may set the delay in seconds between iterations:
+
+```
+ruby ~/dispatcher.rb delay=30
+```
+
+2. **config:** Be default, `dispatcher.rb` will `require 'config.rb'`. That is why you have to execute `export RUBYLIB=~/` before running the dispatcher. Though, you can define a custom location of the configuration file too.
+
+```
+ruby ~/dispatcher.rb config=~/foo/config.rb
+```
+
+3. **db:** Use this parameters to choose a database driver. The supported values are: `postgres`, `crdb`. By default, it is: `postgres`.
+
+```
+ruby ~/dispatcher.rb db=crdb
+```
+
+4. **log:** Use this parameter to indicate the process to write the log in the file `./dispatcher.log` or not. The default value is `yes`.
+
+```
+ruby ~/dispatcher.rb log=no
+```
+
+## 8. Running Workers
+
+The **worker** will run an infineet loop, processing all assigned tasks at each iteration of such a loop. 
+
+**Step 1:** Create a new file `worker.rb` file.
+
+```
+touch ~/worker.rb
+```
+
+**Step 2:** Write this code into your `worker.rb` file.
 
 ```ruby
-require 'pampa'
-require 'config'
-worker_name = 'local.1'
-workers = BlackStack::Pampa.run_worker(worker_name)
+require 'pampa/worker'
 ```
 
-If you want to stop a worker, use this code:
+**Step 3:** Run a worker.
+
+Run the command below on your `local` node in order to run your worker.
+
+```
+export RUBYLIB=~/
+ruby ~/worker.rb id=localhost.1
+```
+
+**Parameters:**
+
+1. **delay:** You may set the delay in seconds between iterations:
+
+```
+ruby ~/worker.rb id=localhost.1 delay=30
+```
+
+2. **config:** Be default, `worker.rb` will `require 'config.rb'`. That is why you have to execute `export RUBYLIB=~/` before running the dispatcher. Though, you can define a custom location of the configuration file too.
+
+```
+ruby ~/worker.rb id=localhost.1 config=~/foo/config.rb
+```
+
+3. **db:** Use this parameters to choose a database driver. The supported values are: `postgres`, `crdb`. By default, it is: `postgres`.
+
+```
+ruby ~/worker.rb id=localhost.1 db=crdb
+```
+
+4. **log:** Use this parameter to indicate the process to write the log in the file `./worker.#{id}.log` or not. The default value is `yes`.
+
+```
+ruby ~/worker.rb id=localhost.1 log=no
+```
+
+## 9. Selection Snippet
+
+You can re-write the default function used by the **dispatcher** to choose the records it will assign to the **workers**.
+
+**Example:** You want to dispatch the records in the table `numbers`, but sorted by `value` reversely.
 
 ```ruby
-require 'pampa'
-require 'config'
-worker_name = 'local.1'
-workers = BlackStack::Pampa.stop_worker(worker_name)
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'search_odd_numbers',
+  :queue_size => 5, 
+  :max_job_duration_minutes => 15,  
+  :max_try_times => 3,
+  :table => :numbers, # Note, that we are sending a class object here
+  :field_primary_key => :value,
+  :field_id => :odd_checking_reservation_id,
+  :field_time => :odd_checking_reservation_time, 
+  :field_times => :odd_checking_reservation_times,
+  :field_start_time => :odd_checking_start_time,
+  :field_end_time => :odd_checking_end_time,
+  :field_success => :odd_checking_success,
+  :field_error_description => :odd_checking_error_description,
+  :filter_worker_id => /\.1$/, # only worker number 1 will receive tasks of this job.
+  :max_pending_tasks => 10, 
+  :max_assigned_workers => 5, 
+  :processing_function => Proc.new do |task, l, job, worker, *args|
+    l.logs 'Checking if '+task[:value].to_s.blue+' is odd... '
+    if task[:value] % 2 == 0
+      task[:is_odd] = false
+      l.logf 'No.'.yellow
+    else
+      task[:is_odd] = true
+      l.logf 'Yes.'.green
+    end
+    DB[:numbers].where(:value=>task[:value]).update(:is_odd=>task[:is_odd])
+  end,
+
+  # write a snippet for selecting records to dispatch.
+  :selecting_function => Proc.new do |n, *args|
+    DB["
+      SELECT *
+      FROM numbers
+      WHERE odd_checking_reservation_id IS NULL           -- record not reserved yet
+      AND odd_checking_start_time IS NULL                 -- record is not pending to relaunch
+      AND COALESCE(odd_checking_reservation_times,0) < 3  -- record didn't fail more than 3 times
+      ORDER BY value DESC                                -- I want to order by number reversely
+      LIMIT #{n}                                          -- don't dispatch more than n records at the time
+    "].all
+  end,
+})
 ```
 
-## 4. Running Dispatcher
-
-_(pending to develop this method)_
-
-The code below will start 1 process in background called **dispatcher**.
-
-The **dispatcher** will assign **tasks** to the nodes, and it will restart failed tasks too.
-
-You have to choose in which node you run the dispatcher.
+**Example:** You define another **job** to submit the odd numbers to a server.
 
 ```ruby
-require 'pampa'
-require 'config'
-node_name = 'local'
-BlackStack::Pampa.run_dispatcher(node_name)
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'submit_odd_numbers',
+  :queue_size => 5, 
+  :max_job_duration_minutes => 15,  
+  :max_try_times => 3,
+  :table => :numbers, # Note, that we are sending a class object here
+
+  :field_primary_key => :value,
+  :field_id => :submit_odd_reservation_id,
+  :field_time => :submit_odd_reservation_time, 
+  :field_times => :submit_odd_reservation_times,
+  :field_start_time => :submit_odd_start_time,
+  :field_end_time => :submit_odd_end_time,
+  :field_success => :submit_odd_success,
+  :field_error_description => :submit_odd_error_description,
+  
+  :filter_worker_id => /\.2/,
+  
+  :max_pending_tasks => 10, 
+  :max_assigned_workers => 5, 
+  
+  :processing_function => Proc.new do |task, l, job, worker, *args|
+    # TODO: Run a post call here, to subit the record.
+  end,
+
+  # write a snippet for selecting records to dispatch.
+  :selecting_function => Proc.new do |n, *args|
+    DB["
+      SELECT *
+      FROM numbers
+      WHERE submit_odd_reservation_id IS NULL             -- record not reserved yet
+      AND submit_odd_start_time IS NULL                   -- record is not pending to relaunch
+      AND COALESCE(submit_odd_reservation_times,0) < 3    -- record didn't fail more than 3 times
+
+      AND odd_checking_end_time IS NOT NULL               -- record that have been checked
+      AND COALESCE(odd_checking_success, FALSE) = TRUE    -- record that have been checked successfully
+      AND COALESCE(id_odd, FALSE) = TRUE                  -- only submit odd values
+
+      ORDER BY odd_checking_end_time DESC                 -- submit records in the order they have been checked
+      LIMIT #{n}                                          -- don't dispatch more than n records at the time
+    "].all
+  end,
+})
 ```
 
-You can also stop the dispatcher.
+**Other Examples:**
+
+- You may want to deliver emails of active email campaigns only (`active=true`).
+- You may want to process orders in the order they have been created (`order by create_time`).
+- You may want to add a delay of 1 day from the moment a new user signed up and he/she receives an email notification.
+
+## 10. Relaunching Snippet
+
+Use `:relaunching_function` to write your own snippet code that will choose the records you want to relaunch.
+
+**Example:** You may want to check if each number is still odd every 10 minutes, because you are afraid the laws of the universe have suddenly changed
 
 ```ruby
-require 'pampa'
-require 'config'
-BlackStack::Pampa.stop_dispatcher
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'search_odd_numbers',
+  :queue_size => 5, 
+  :max_job_duration_minutes => 15,  
+  :max_try_times => 3,
+  :table => :numbers, # Note, that we are sending a class object here
+  :field_primary_key => :value,
+  :field_id => :odd_checking_reservation_id,
+  :field_time => :odd_checking_reservation_time, 
+  :field_times => :odd_checking_reservation_times,
+  :field_start_time => :odd_checking_start_time,
+  :field_end_time => :odd_checking_end_time,
+  :field_success => :odd_checking_success,
+  :field_error_description => :odd_checking_error_description,
+  :filter_worker_id => /\.1$/, # only worker number 1 will receive tasks of this job.
+  :max_pending_tasks => 10, 
+  :max_assigned_workers => 5, 
+  :processing_function => Proc.new do |task, l, job, worker, *args|
+    l.logs 'Checking if '+task[:value].to_s.blue+' is odd... '
+    if task[:value] % 2 == 0
+      task[:is_odd] = false
+      l.logf 'No.'.yellow
+    else
+      task[:is_odd] = true
+      l.logf 'Yes.'.green
+    end
+    DB[:numbers].where(:value=>task[:value]).update(:is_odd=>task[:is_odd])
+  end,
+
+  # you want to check if each number is still odd every 10 minutes, 
+  # because you are afraid the laws of the universe have suddenly changed.
+  :relaunching_function => Proc.new do |n, *args|
+    DB["
+      SELECT *
+      FROM numbers
+      WHERE odd_checking_end_time IS NOT NULL                                           -- record that have been checked
+      AND odd_checking_end_time < CAST('#{now}' AS TIMESTAMP) - INTERVAL '10 MINUTES'   -- checked 10 minutes ago
+      LIMIT #{n}                                                                        -- don't relaunch more than n records at the time
+    "].all
+  end,
+})
 ```
 
-Running a dispatcher in one node will stop the dispatcher in all other nodes.
+**Other Examples:**
 
-## 5. Reporting
+- Every 5 minutes you want to check if a list of websites are online.
+- You want to trace the CPU usage of a pool of servers.
+- You want to keep mirroring infromation between databases.
 
-_(pending to develop this method)_
+## 11. Elastic Workers Assignation
 
-You can publish a website to show the stats of your jobs.
+The **dispatcher** process not only assign **tasks** to **workers**, but it also **assign** and **unassign** **workers** to each **job**, depending on the number of **task** in **queue** for such a **job**.
+
+When you define a job, 
+
+- use the parameter `:max_pending_tasks` to tell the dispatcher when it should assign more workers for this job. If the number of pending task is higer than `:max_pending_tasks`, the dispatcher will scale the number of assigned workers;
+
+- but also use the parameter `:max_assigned_workers` to prevent your job to monopolize the entire pool of workers and get in the way of other jobs if its number of pending tasks raises so high;
+
+and finally,
+
+- you can use the `:filter_worker_id` to define a regular expession to filter the workers that may be assigned for your job. E.g.: Use `/.*/` to allow any worker to be assigned, or use `/\.1$/` to allow the first worker in each node to be assigned only.
+
+## 12. Reporting
+
+You can get the number of 
+
+- total tasks,
+- completed task,
+- pending tasks,
+and
+- failed tasks;
+
+calling the methods shown below.
 
 ```ruby
-require 'pampa'
-require 'config'
-BlackStack::Pampa.run_app
+j = BlackStack::Pampa.jobs.first
+
+p j.name
+
+p j.total.to_label
+p j.completed.to_label
+p j.pending.to_label
+p j.failed.to_label
 ```
 
-You can also run a CLI tool.
+If you wrote snippets for either selecting or relaunching records, you may need to write sneeppets for the reporting methods too, in order to make their numbers congruent.
 
 ```ruby
-require 'pampa'
-require 'config'
-BlackStack::Pampa.run_cli
+# define the job
+BlackStack::Pampa.add_job({
+  :name => 'search_odd_numbers',
+
+  # ...
+
+  :total_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+  :completed_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+  :pending_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+  :completed_function => Proc.new do |*args|
+    # TODO: return a number here
+  end,
+
+})
 ```
 
-## 6. Custom Dispatching Functions
+## Inspiration
 
-_(pending to write this section)_
+- [https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox](https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox)
 
-### 6.1. Selection of Next Tasks: `:selecting_function`
+## Disclaimer
 
-You may want to processes records who meet with a condition.
-For example, you may want to download a CSV only after you have received a signal from your provider telling you the CSV is ready for download. 
+The logo has been taken from [here](https://icons8.com/icon/ay4lYdOUt1Vd/geometric-figures).
 
-additional function to choose the records to launch
-it should returns an array of IDs
-keep this parameter nil if you want to use the default algorithm
+Use this library at your own risk.
 
-### 6.2. Relaunching: `:relaunching_function`
+## Versioning
 
-You may want to re-processes recurrently every few minutes or hours. 
-For example, you may want to monitor servers.
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the last [ruby gem](https://rubygems.org/gems/simple_command_line_parser). 
 
-additional function to choose the records to retry
-keep this parameter nil if you want to use the default algorithm
+## Authors
 
-## 7. Custom Reporting Function
+* **Leandro Daniel Sardi** - *Initial work* - [LeandroSardi](https://github.com/leandrosardi)
 
-For showing stats in either the APP or the CLI, you can take the default values or write custom code-snippets.
+## License
 
-_(pending to write this section)_
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
-## 8. Elastic Workers Assignation
+## Further Work
 
-_(pending to write this section)_
-
-## 9. Further Work
-
-_(pending to write this section)_
-
-### 9.1. Counting Pending Tasks: `:occupied_function`
-
-_(this feature is pending to develop)_
+### Counting Pending Tasks: `:occupied_function`
 
 The `:occupied_function` function returns an array with the pending **tasks** in queue for a **worker**.
 
-The default function returnss all the **tasks** with `:field_id` equal to the name of the worker, and the `:field_start_time` empty.
+The default function returns all the **tasks** with `:field_id` equal to the name of the worker, and the `:field_start_time` empty.
 
 You can setup a custom version of this function.
 
@@ -308,7 +540,7 @@ additional function to decide how many records are pending for processing
 it should returns an integer
 keep it nil if you want to run the default function
 
-### 9.2. Selecting of Workers: `:allowing_function`
+### Selecting of Workers: `:allowing_function`
 
 _(this feature is pending to develop)_
 
@@ -317,15 +549,15 @@ example: use this function when you want to decide based on the remaining credit
 it should returns true or false
 keep it nil if you want it returns always true
 
-### 9.3. Scheduled Tasks
+### Scheduled Tasks
 
 _(this feature is pending to develop)_
 
-### 9.4. Multi-level Dispatching
+### Multi-level Dispatching
 
 _(this feature is pending to develop)_
 
-### 9.5. Setup Resources for Workers
+### Setup Resources for Workers
 
 _(this feature is pending to develop)_
 
@@ -338,7 +570,7 @@ n = BlackStack::Pampa.add_nodes([{
     :ssh_port => 22,
     :ssh_private_key_file => './plank.pem',
     # setup max number of worker processes
-    :max_workers => 10,
+    :max_workers => 2,
     # setup max memory consumption per worker (MBs)
     :max_ram => 512, 
     # setup max CPU usage per worker (%)
@@ -350,13 +582,3 @@ n = BlackStack::Pampa.add_nodes([{
 
 }])
 ```
-
-## 10. Inspiration
-
-- [https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox](https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox)
-
-## 11. Disclaimer
-
-The logo has been taken from [here](https://icons8.com/icon/ay4lYdOUt1Vd/geometric-figures).
-
-Use this library at your own risk.
