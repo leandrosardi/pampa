@@ -54,7 +54,7 @@ l.logs 'Connecting to database... '
 if PARSER.value('db') == 'postgres'
     DB = BlackStack::PostgreSQL::connect
 elsif PARSER.value('db') == 'crdb'
-    DB = BlackStack::CockroachDB::connect
+    DB = BlackStack::CRDB::connect
 else
     raise 'Unknown database driver.'
 end
