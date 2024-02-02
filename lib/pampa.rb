@@ -4,7 +4,7 @@ require 'blackstack-nodes'
 require 'simple_command_line_parser'
 require 'simple_cloud_logging'
 require 'colorize'
-require 'sinatra'
+#require 'sinatra'
 
 module BlackStack
     module Pampa
@@ -128,7 +128,7 @@ module BlackStack
                     workers << w # add worker back to the list of unassigned
                     l.logf "done".green + " (#{w.id.to_s.blue})"
                   }
-                  l.done
+                  l.logf 'done'.green
                 else
                   l.logf "no".red
 
@@ -169,7 +169,7 @@ module BlackStack
                   end # if pendings.size < job.max_pending_tasks && assigned.size > 1
                 end # if pendings.size == 0
               end # if workers.size > 0
-            l.done
+            l.logf 'done'.green
           }
         end # def self.stretch()
 
@@ -194,10 +194,10 @@ module BlackStack
               tasks.each { |task| 
                 l.logs("Relaunching task #{task[job.field_primary_key.to_sym]}... ")
                 job.relaunch(task)
-                l.done
+                l.logf 'done'.green
               }
 
-            l.done
+            l.logf 'done'.green
           }
         end # def self.relaunch(n=10000)
 

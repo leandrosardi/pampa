@@ -88,7 +88,7 @@ begin
         # get the start loop time
         l.logs 'Starting loop... '
         start = Time.now()
-        l.done        
+        l.logf 'done'.green        
 
         begin
             l.log ''
@@ -136,7 +136,7 @@ begin
                 end        
             }
 
-            l.done
+            l.logf 'done'.green
 
         rescue => e
             l.logf 'Error: '+e.message
