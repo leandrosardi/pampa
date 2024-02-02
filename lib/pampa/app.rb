@@ -177,11 +177,11 @@ set(:api_key) do |*roles|
 end
 
 get '/404', :agent => /(.*)/ do
-  erb :'views/404', :layout => :'/views/layouts/public'
+  erb :'pampa/views/404', :layout => :'/pampa/views/layouts/public'
 end
 
 get '/500', :agent => /(.*)/ do
-  erb :'views/500', :layout => :'/views/layouts/public'
+  erb :'pampa/views/500', :layout => :'/pampa/views/layouts/public'
 end
 
 # dashboard
@@ -189,5 +189,5 @@ get '/', :agent => /(.*)/ do
   redirect '/dashboard'
 end
 get '/dashboard', :agent => /(.*)/ do
-  erb :'views/dashboard' #, :layout => :'/views/layouts/public'
+  erb :'pampa/views/dashboard' #, :layout => :'/pampa/views/layouts/public'
 end

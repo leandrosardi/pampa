@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pampa'
-  s.version     = '2.0.34'
-  s.date        = '2023-12-09'
+  s.version     = '2.1.3'
+  s.date        = '2024-02-02'
   s.summary     = "Ruby library for async & distributed computing, supporting dynamic reconfiguration, distribution of the computation jobs, error handling, job-retry and fault tolerance, and fast (non-direct) communication to ensure real-time capabilities."
   s.description = "Pampa is a Ruby library for async & distributing computing providing the following features:
 
@@ -28,7 +28,14 @@ Find documentation here: https://github.com/leandrosardi/pampa
     'lib/pampa/dispatcher.rb',
     'lib/pampa/app.rb',
     'lib/pampa.rb',
-    'pampa.gemspec'
+    'pampa.gemspec',
+
+    'lib/pampa/views/dashboard.erb',
+    'lib/pampa/views/404.erb',
+    'lib/pampa/views/500.erb',
+    'lib/pampa/views/layouts/public.erb',
+    'lib/pampa/views/templates/footer.public.erb',
+    'lib/pampa/views/templates/head.public.erb',
   ]
   s.homepage    = 'https://github.com/leandrosardi/pampa'
   s.license     = 'MIT'
