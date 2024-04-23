@@ -75,7 +75,7 @@ Add this code to your `config.rb` file:
 BlackStack::Pampa.add_nodes(
   [
     {
-      :name => 'local'
+      :name => 'local',
       # setup SSH connection parameters
       :net_remote_ip => '127.0.0.1',  
       :ssh_username => '<your ssh username>', # example: root
