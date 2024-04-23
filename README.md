@@ -103,6 +103,15 @@ Add this code to your `config.rb` file:
 BlackStack::Pampa.add_job({
   :name => 'search_odd_numbers',
 
+  # any worker can be assigned for processing this job.
+  :filter_worker_id => /.*/,
+  
+  # no more than 5 workers can be assigned for processing this job.
+  :max_assigned_workers => 5,
+      
+  # add more workers if the number of pending tasks is over 5.
+  :max_pending_tasks => 500,
+
   # Minimum number of tasks that a worker must have in queue.
   # Default: 5
   :queue_size => 5, 
