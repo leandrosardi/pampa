@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pampa'
-  s.version     = '2.1.3'
-  s.date        = '2024-02-02'
+  s.version     = '2.1.4'
+  s.date        = '2024-07-30'
   s.summary     = "Ruby library for async & distributed computing, supporting dynamic reconfiguration, distribution of the computation jobs, error handling, job-retry and fault tolerance, and fast (non-direct) communication to ensure real-time capabilities."
   s.description = "Pampa is a Ruby library for async & distributing computing providing the following features:
 
@@ -39,12 +39,12 @@ Find documentation here: https://github.com/leandrosardi/pampa
   ]
   s.homepage    = 'https://github.com/leandrosardi/pampa'
   s.license     = 'MIT'
-  s.add_runtime_dependency 'rubygems-bundler', '~> 1.4.5', '>= 1.4.5'
-  s.add_runtime_dependency 'sinatra', '~> 2.2.4', '>= 2.2.4'
-  s.add_runtime_dependency 'colorize', '~> 0.8.1', '>= 0.8.1'
-  s.add_runtime_dependency 'blackstack-core', '~> 1.2.15', '>= 1.2.15'
-  s.add_runtime_dependency 'blackstack-db', '~> 1.0.1', '>= 1.0.1'
-  s.add_runtime_dependency 'blackstack-nodes', '~> 1.2.12', '>= 1.2.12'
-  s.add_runtime_dependency 'simple_command_line_parser', '~> 1.1.2', '>= 1.1.2'
-  s.add_runtime_dependency 'simple_cloud_logging', '~> 1.2.2', '>= 1.2.2'
+  s.add_runtime_dependency 'rubygems-bundler', '~> 1.4.5'
+  s.add_runtime_dependency 'sinatra', '~> 2.2.4'
+  s.add_runtime_dependency 'colorize', '~> 0.8.1'
+  s.add_runtime_dependency 'blackstack-core', '~> 1.2.15'
+  s.add_runtime_dependency 'blackstack-db', '~> 1.0.1'
+  s.add_runtime_dependency 'blackstack-nodes', '~> 1.2.12'
+  s.add_runtime_dependency 'simple_command_line_parser', '~> 1.1.2'
+  s.add_runtime_dependency 'simple_cloud_logging', '~> 1.2.7'
 end
