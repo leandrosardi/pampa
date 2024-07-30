@@ -96,10 +96,14 @@ begin
             
         # note: this catches the CTRL+C signal.
         # note: this catches the `kill` command, ONLY if it has not the `-9` option.
-        rescue SignalException, SystemExit, Interrupt => e                    
+        rescue SignalException, SystemExit, Interrupt => e
+            l.reset
+            l.error(e)                       
             l.logf 'Bye!'.yellow
             raise e
         rescue => e
+            l.reset
+            l.error(e)    
             l.logf "Error: #{e.to_console}".red                
         end
         
@@ -132,12 +136,15 @@ begin
         end
     end # while true
 rescue SignalException, SystemExit, Interrupt
+    l.reset
     # note: this catches the CTRL+C signal.
     # note: this catches the `kill` command, ONLY if it has not the `-9` option.
     l.logf 'Process Interrumpted.'.yellow
     l.log 'Bye!'.yellow
 rescue => e
-    l.logf "Fatal Error: #{e.to_console}".red
+    l.reset
+    l.error(e)
 rescue 
+    l.reset
     l.logf 'Unknown Fatal Error.'.red
 end # begin
