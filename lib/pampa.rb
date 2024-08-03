@@ -731,5 +731,86 @@ module BlackStack
               end
             end # def failed
         end # class Job
+
+
+        # This method is used to run a stand alone process.
+        # Parameters:
+        # - h[:log_filename] - the name of the log file. If nil, the log won't be printed.
+        # - h[:delay] - the minimum delay between loops. A minimum of 10 seconds is recommended, in order to don't hard the database server. Default is 30 seconds.
+        # - h[:run_once] - avoid infinite loop. Default is false.
+        # - h[:function] - the Proc to be executed in each loop.
+        #
+        def self.run_stand_alone(h, *args)
+          err = []
+          #err << "The parameter 'log_filename' is required." if h[:log_filename].nil? || h[:log_filename].to_s.empty?
+          err << "The parameter 'delay' is required." if h[:delay].nil? || h[:delay].to_s.empty?
+          err << "The parameter 'run_once' is required." if h[:run_once].nil? || h[:run_once].to_s.empty?
+          err << "The parameter 'function' is required." if h[:function].nil? || h[:function].to_s.empty?
+
+          err << "The parameter 'log_filename' must be a string." if h[:log_filename] && !h[:log_filename].is_a?(String)
+          err << "The parameter 'delay' must be an integer." if h[:delay] && !h[:delay].is_a?(Integer)
+          err << "The parameter 'run_once' must be a boolean." if h[:run_once] && ![true, false].include?(h[:run_once])
+          err << "The parameter 'function' must be a Proc." if h[:function] && !h[:function].is_a?(Proc)
+
+          log_filename = h[:log_filename]
+          delay = h[:delay]
+          run_once = h[:run_once]
+          function = h[:function]
+
+          l = log_filename.nil? ? BlackStack::DummyLogger.new(nil) : BlackStack::LocalLogger.new(log_filename)
+
+          while true
+              # get the start loop time
+              l.logs 'Starting loop... '
+              start = Time.now()
+              l.logf 'done'.green        
+          
+              begin
+                  function.call(l)
+              # catch general exceptions
+              rescue => e
+                  l.logf "Error: #{e.to_console.red}"
+              # CTRL+C will be catched here
+              rescue Interrupt => e
+                  l.logf "Interrupted".red
+                  exit(0)
+              end
+          
+              l.logs 'Releasing resources... '
+              GC.start
+              l.logf 'done'.green
+              
+              if run_once
+                  l.log "Finished Loop!\n".blue
+                  exit(0)
+              end
+          
+              # get the end loop time
+              l.logs 'Ending loop... '
+              finish = Time.now()
+              l.logf 'done'.green        
+                      
+              # get different in seconds between start and finish
+              # if diff > 30 seconds
+              l.logs 'Calculating loop duration... '
+              diff = finish - start
+              l.logf 'done ('+diff.to_s.blue+')'
+          
+              l.log "Finished Loop!\n".blue
+          
+              if diff < delay
+                  # sleep for 30 seconds
+                  n = delay-diff
+                          
+                  l.logs 'Sleeping for '+n.to_label.blue+' seconds... '
+                  sleep n
+                  l.logf 'done'.green        
+              else
+                  l.log 'No sleeping. The loop took '+diff.to_label.blue+' seconds.'
+              end # if diff < delay
+          
+          end # while (true)            
+      end # def self.run_stand_alone
+
     end # module Pampa
 end # module BlackStack
