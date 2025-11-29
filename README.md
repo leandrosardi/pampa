@@ -173,8 +173,8 @@ BlackStack::PostgreSQL::set_db_params({
   :db_url => '89.116.25.250', # n04
   :db_port => '5432', 
   :db_name => 'micro.data', 
-  :db_user => 'blackstack', 
-  :db_password => '*****',
+  :db_user => 'your-name', 
+  :db_password => 'your-password',
   :db_sslmode => 'disable',
 })
 ```
